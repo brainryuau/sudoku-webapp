@@ -100,7 +100,12 @@ async function runAction(action, workingText) {
   try {
     if (workingText) setMessage(workingText);
     await new Promise((resolve) => setTimeout(resolve, 30));
-    await action();
+    await Promise.race([
+      action(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Firebase 응답 시간이 너무 길어요. Realtime Database 주소와 규칙을 확인해주세요.")), 12000),
+      ),
+    ]);
   } catch (error) {
     console.error(error);
     setMessage(firebaseErrorMessage(error), "warn");
@@ -209,6 +214,23 @@ function countSolutions(grid, limit = 2) {
 }
 
 function makePuzzle(fullGrid, clues) {
+  const next = cloneGrid(fullGrid);
+  const positions = shuffle(
+    Array.from({ length: size * size }, (_, index) => ({
+      row: Math.floor(index / size),
+      col: index % size,
+    })),
+  );
+
+  const blanks = size * size - clues;
+  for (const { row, col } of positions.slice(0, blanks)) {
+    next[row][col] = 0;
+  }
+
+  return next;
+}
+
+function makePuzzleWithUniqueSolution(fullGrid, clues) {
   const next = cloneGrid(fullGrid);
   const positions = shuffle(
     Array.from({ length: size * size }, (_, index) => ({
