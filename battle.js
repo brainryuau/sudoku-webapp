@@ -140,6 +140,14 @@ function cloneGrid(grid) {
   return grid.map((row) => [...row]);
 }
 
+function isGrid(value) {
+  return (
+    Array.isArray(value) &&
+    value.length === size &&
+    value.every((row) => Array.isArray(row) && row.length === size)
+  );
+}
+
 function makeEmptyGrid() {
   return Array.from({ length: size }, () => Array(size).fill(0));
 }
@@ -331,6 +339,10 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   setMessage(text, "warn");
 }
 
+function isValidRoomData(value) {
+  return Boolean(value && isGrid(value.puzzle) && isGrid(value.solution));
+}
+
 function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(sessionKey) || "null");
@@ -338,7 +350,7 @@ function loadSession() {
     roomCode = saved.roomCode;
     playerId = saved.playerId;
     playerName = saved.playerName || "플레이어";
-    playerGrid = saved.playerGrid || [];
+    playerGrid = isGrid(saved.playerGrid) ? saved.playerGrid : [];
     selected = saved.selected || { row: 0, col: 0 };
     seconds = Number(saved.seconds) || 0;
     playerNameInput.value = playerName;
@@ -506,6 +518,11 @@ function handleRoomUpdate(snapshot) {
     return;
   }
 
+  if (!isValidRoomData(room)) {
+    resetBattleState("이 방은 퍼즐 정보가 없어서 사용할 수 없어요. 새 방을 다시 만들어주세요.");
+    return;
+  }
+
   roomCodeEl.textContent = roomCode;
   solution = room.solution;
   puzzle = room.puzzle;
@@ -586,6 +603,11 @@ async function joinRoom() {
   }
 
   const nextRoom = snapshot.val();
+  if (!isValidRoomData(nextRoom)) {
+    setMessage("이 방은 퍼즐 정보가 없어서 참가할 수 없어요. 방 만든 사람이 새 방을 다시 만들어야 합니다.", "warn");
+    return;
+  }
+
   solution = nextRoom.solution;
   puzzle = nextRoom.puzzle;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
