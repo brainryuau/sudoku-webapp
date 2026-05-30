@@ -27,7 +27,6 @@ const timerEl = document.querySelector("#battleTimer");
 const messageEl = document.querySelector("#battleMessage");
 const playersPanel = document.querySelector("#playersPanel");
 const chatMessagesEl = document.querySelector("#chatMessages");
-const chatForm = document.querySelector("#chatForm");
 const chatInput = document.querySelector("#chatInput");
 const sendChatBtn = document.querySelector("#sendChatBtn");
 const setupPanel = document.querySelector("#setupPanel");
@@ -37,6 +36,7 @@ const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const copyCodeBtn = document.querySelector("#copyCodeBtn");
 const eraseBtn = document.querySelector("#battleEraseBtn");
+const leaveRoomBtn = document.querySelector("#leaveRoomBtn");
 const difficultyButtons = [...document.querySelectorAll("[data-battle-difficulty]")];
 const numberButtons = [...document.querySelectorAll("[data-battle-number]")];
 
@@ -338,6 +338,10 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   timerEl.textContent = "00:00";
   setupPanel.classList.remove("is-hidden");
   setMessage(text, "warn");
+}
+
+async function leaveRoom() {
+  resetBattleState("방에서 나왔어요. 새 방을 만들거나 다른 방에 참가하세요.");
 }
 
 function isValidRoomData(value) {
@@ -693,7 +697,6 @@ async function sendChat() {
     });
   } finally {
     sendChatBtn.disabled = false;
-    chatInput.focus();
   }
 }
 
@@ -742,9 +745,13 @@ createRoomBtn.addEventListener("click", () => runAction(createRoom, "방을 만�
 joinRoomBtn.addEventListener("click", () => runAction(joinRoom, "방에 참가하는 중입니다..."));
 copyCodeBtn.addEventListener("click", () => runAction(copyCode));
 eraseBtn.addEventListener("click", () => runAction(eraseSelected));
-chatForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  runAction(sendChat);
+leaveRoomBtn.addEventListener("click", () => runAction(leaveRoom));
+sendChatBtn.addEventListener("click", () => runAction(sendChat));
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    runAction(sendChat);
+  }
 });
 
 document.addEventListener("keydown", (event) => {

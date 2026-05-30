@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260530-8" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-6" />
   </head>
   <body>
     <main class="app-shell">
@@ -60,10 +60,10 @@
 
           <section class="chat-panel" aria-label="대전 채팅">
             <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
-            <form id="chatForm" class="chat-form">
+            <div class="chat-form">
               <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
-              <button id="sendChatBtn" class="primary" type="submit">전송</button>
-            </form>
+              <button id="sendChatBtn" class="primary" type="button">전송</button>
+            </div>
           </section>
 
           <div class="number-pad" aria-label="숫자 입력">
@@ -78,14 +78,15 @@
             <button data-battle-number="9">9</button>
           </div>
 
-          <div class="actions">
+          <div class="actions battle-actions">
             <button id="battleEraseBtn" class="secondary">지우기</button>
             <button id="copyCodeBtn" class="primary">코드 복사</button>
+            <button id="leaveRoomBtn" class="secondary danger">방 나가기</button>
           </div>
         </aside>
       </section>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-5"></script>
+    <script type="module" src="./battle.js?v=20260531-6"></script>
   </body>
 </html>

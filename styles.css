@@ -429,6 +429,10 @@ h1 {
   gap: 8px;
 }
 
+.battle-actions {
+  grid-template-columns: 1fr 1.2fr 1fr;
+}
+
 .primary {
   color: #fff;
   background: var(--accent);
@@ -437,6 +441,10 @@ h1 {
 
 .primary:hover {
   background: var(--accent-strong);
+}
+
+.danger {
+  color: var(--warn);
 }
 
 @media (max-width: 820px) {
@@ -469,6 +477,14 @@ h1 {
     aspect-ratio: 1;
     min-height: 38px;
     font-size: 1.05rem;
+  }
+
+  .battle-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .battle-actions .danger {
+    grid-column: 1 / -1;
   }
 }
 
