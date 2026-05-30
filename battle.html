@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudoku Battle</title>
+    <link rel="stylesheet" href="./styles.css?v=20260530-5" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="대전 상태">
+        <div>
+          <p class="eyebrow">Sudoku Battle</p>
+          <h1>대전모드</h1>
+        </div>
+        <div class="stats">
+          <a class="mode-link" href="./index.html">혼자하기</a>
+          <div class="stat">
+            <span>방 코드</span>
+            <strong id="roomCode">----</strong>
+          </div>
+          <div class="stat">
+            <span>시간</span>
+            <strong id="battleTimer">00:00</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="game-layout">
+        <div class="board-wrap">
+          <div id="battleBoard" class="sudoku-board" aria-label="대전 스도쿠 보드"></div>
+        </div>
+
+        <aside class="controls" aria-label="대전 조작">
+          <div class="battle-panel" id="setupPanel">
+            <label>
+              이름
+              <input id="playerName" maxlength="14" placeholder="플레이어" />
+            </label>
+            <label>
+              방 코드
+              <input id="joinCode" maxlength="6" placeholder="예: A7K2Q9" />
+            </label>
+            <div class="difficulty" role="group" aria-label="대전 난이도">
+              <button class="difficulty-btn active" data-battle-difficulty="easy">쉬움</button>
+              <button class="difficulty-btn" data-battle-difficulty="medium">보통</button>
+              <button class="difficulty-btn" data-battle-difficulty="hard">어려움</button>
+            </div>
+            <div class="actions">
+              <button id="joinRoomBtn" class="secondary">참가</button>
+              <button id="createRoomBtn" class="primary">방 만들기</button>
+            </div>
+          </div>
+
+          <div id="battleMessage" class="message" role="status" aria-live="polite">
+            방을 만들거나 코드를 입력해서 참가하세요.
+          </div>
+
+          <div id="playersPanel" class="progress-panel"></div>
+
+          <section class="chat-panel" aria-label="대전 채팅">
+            <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+            <form id="chatForm" class="chat-form">
+              <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
+              <button id="sendChatBtn" class="primary" type="submit">전송</button>
+            </form>
+          </section>
+
+          <div class="number-pad" aria-label="숫자 입력">
+            <button data-battle-number="1">1</button>
+            <button data-battle-number="2">2</button>
+            <button data-battle-number="3">3</button>
+            <button data-battle-number="4">4</button>
+            <button data-battle-number="5">5</button>
+            <button data-battle-number="6">6</button>
+            <button data-battle-number="7">7</button>
+            <button data-battle-number="8">8</button>
+            <button data-battle-number="9">9</button>
+          </div>
+
+          <div class="actions">
+            <button id="battleEraseBtn" class="secondary">지우기</button>
+            <button id="copyCodeBtn" class="primary">코드 복사</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./battle.js?v=20260530-5"></script>
+  </body>
+</html>
