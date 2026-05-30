@@ -33,6 +33,8 @@ let seconds = 0;
 let timerId = null;
 let gameComplete = false;
 let completedUnits = new Set();
+let eraseUsed = 0;
+let hintUsed = 0;
 let audioContext = null;
 let progress = {
   easyTimedWins: 0,
@@ -219,6 +221,8 @@ function saveGame() {
     mistakes,
     seconds,
     gameComplete,
+    eraseUsed,
+    hintUsed,
     progress,
     completedUnits: [...completedUnits],
   };
@@ -255,6 +259,8 @@ function loadSavedGame() {
     mistakes = Number.isInteger(state.mistakes) ? state.mistakes : 0;
     seconds = Number.isInteger(state.seconds) ? state.seconds : 0;
     gameComplete = Boolean(state.gameComplete);
+    eraseUsed = Number.isInteger(state.eraseUsed) ? state.eraseUsed : 0;
+    hintUsed = Number.isInteger(state.hintUsed) ? state.hintUsed : 0;
     completedUnits = new Set(Array.isArray(state.completedUnits) ? state.completedUnits : []);
     return true;
   } catch {
@@ -394,6 +400,13 @@ function setMessage(text, tone = "normal") {
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
 }
 
+function updateToolButtons() {
+  eraseBtn.textContent = `지우기 ${Math.max(0, 3 - eraseUsed)}/3`;
+  hintBtn.textContent = `힌트 ${Math.max(0, 3 - hintUsed)}/3`;
+  eraseBtn.disabled = gameComplete || eraseUsed >= 3;
+  hintBtn.disabled = gameComplete || hintUsed >= 3;
+}
+
 function renderProgress() {
   const mediumReady = isDifficultyUnlocked("medium");
   const hardReady = isDifficultyUnlocked("hard");
@@ -482,6 +495,7 @@ function checkComplete() {
   clearInterval(timerId);
   const wasTimedWin = recordTimedWin();
   updateDifficultyButtons();
+  updateToolButtons();
   setMessage(completionMessage(wasTimedWin));
   saveGame();
   return true;
@@ -515,6 +529,11 @@ function inputNumber(value) {
 
 function useHint() {
   if (gameComplete) return;
+  if (hintUsed >= 3) {
+    setMessage("힌트는 3번까지 사용할 수 있어요.", "warn");
+    updateToolButtons();
+    return;
+  }
   const candidates = [];
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
@@ -532,15 +551,22 @@ function useHint() {
       : candidates[0];
   playerGrid[target.row][target.col] = solution[target.row][target.col];
   selected = target;
+  hintUsed += 1;
   setMessage("힌트로 한 칸을 채웠어요.");
   playTone("correct");
   renderBoard();
+  updateToolButtons();
   checkUnitEffects();
   if (!checkComplete()) saveGame();
 }
 
 function eraseSelected() {
   if (gameComplete) return;
+  if (eraseUsed >= 3) {
+    setMessage("지우기는 3번까지 사용할 수 있어요.", "warn");
+    updateToolButtons();
+    return;
+  }
   const { row, col } = selected;
 
   if (fixedCells[row][col]) {
@@ -549,8 +575,10 @@ function eraseSelected() {
   }
 
   playerGrid[row][col] = 0;
+  eraseUsed += 1;
   setMessage("선택한 칸을 비웠어요.");
   renderBoard();
+  updateToolButtons();
   saveGame();
 }
 
@@ -558,6 +586,8 @@ function newGame() {
   gameComplete = false;
   mistakes = 0;
   completedUnits = new Set();
+  eraseUsed = 0;
+  hintUsed = 0;
   mistakesEl.textContent = mistakes;
   generateGame();
 
@@ -573,6 +603,7 @@ function newGame() {
   );
   updateDifficultyButtons();
   renderBoard();
+  updateToolButtons();
   startTimer();
   saveGame();
 }
@@ -591,6 +622,7 @@ function startApp() {
     mistakesEl.textContent = mistakes;
     timerEl.textContent = formatTime(seconds);
     updateDifficultyButtons();
+    updateToolButtons();
     renderBoard();
     startTimer(false);
     setMessage(

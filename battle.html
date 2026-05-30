@@ -4,14 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-15" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-16" />
   </head>
   <body>
     <main class="app-shell">
       <section class="topbar" aria-label="대전 상태">
         <div>
-          <p class="eyebrow">Sudoku Battle</p>
-          <h1>대전모드</h1>
           <div class="mobile-time-title">
             <span>시간</span>
             <strong id="mobileBattleTimer">00:00</strong>
@@ -113,8 +111,6 @@
           <div id="battleMessage" class="message battle-message" role="status" aria-live="polite">
             방을 만들거나 코드를 입력해서 참가하세요.
           </div>
-
-          <button id="leaveRoomBtn" class="secondary danger leave-action">방 나가기</button>
         </aside>
       </section>
 
@@ -125,8 +121,10 @@
           <strong id="mobileRoomCode">----</strong>
         </div>
       </div>
+
+      <button id="leaveRoomBtn" class="secondary danger leave-action">방 나가기</button>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-15"></script>
+    <script type="module" src="./battle.js?v=20260531-16"></script>
   </body>
 </html>

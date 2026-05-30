@@ -180,11 +180,11 @@ h1 {
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--line);
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   background: var(--surface);
   color: #101923;
-  font-size: clamp(1.58rem, 5.6vw, 2.75rem);
-  font-weight: 650;
+  font-size: clamp(1.52rem, 5.4vw, 2.65rem);
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0;
   user-select: none;
@@ -454,9 +454,11 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  width: 100%;
 }
 
 .number-pad button {
+  min-width: 0;
   aspect-ratio: 1;
   min-height: 56px;
   color: #233d79;
@@ -508,7 +510,7 @@ h1 {
 
   .topbar {
     display: grid;
-    grid-template-columns: 94px minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 8px;
   }
@@ -557,6 +559,7 @@ h1 {
     gap: 2px;
     min-height: 88px;
     height: 88px;
+    width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.78);
@@ -644,17 +647,19 @@ h1 {
   }
 
   .number-pad {
-    grid-template-columns: repeat(9, 1fr);
-    gap: 2px;
+    width: 100%;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0;
     order: 3;
   }
 
   .number-pad button {
+    min-width: 0;
     aspect-ratio: 1;
-    min-height: 36px;
-    border-radius: 5px;
+    min-height: 34px;
+    border-radius: 4px;
     padding: 0;
-    font-size: 1.32rem;
+    font-size: 1.52rem;
     color: #233d79;
   }
 
@@ -685,7 +690,7 @@ h1 {
   }
 
   .leave-action {
-    order: 29;
+    order: 99;
   }
 
   .mobile-bottom-stats {
@@ -724,8 +729,8 @@ h1 {
   }
 
   .cell {
-    font-size: clamp(1.35rem, 8.1vw, 2rem);
-    font-weight: 650;
+    font-size: clamp(1.22rem, 7.6vw, 1.86rem);
+    font-weight: 500;
   }
 
   h1 {
