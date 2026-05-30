@@ -11,13 +11,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDThHT_h6rZpfsa6p6yPDbjBzhAivm5GB8",
+  authDomain: "sudoku-2db43.firebaseapp.com",
+  projectId: "sudoku-2db43",
+  storageBucket: "sudoku-2db43.firebasestorage.app",
+  messagingSenderId: "872508216238",
+  appId: "1:872508216238:web:d91ef230674f0041662e3f",
+  measurementId: "G-235782ENKG"
 };
 
 const boardEl = document.querySelector("#battleBoard");
