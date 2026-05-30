@@ -28,6 +28,7 @@ const timerEl = document.querySelector("#battleTimer");
 const messageEl = document.querySelector("#battleMessage");
 const playersPanel = document.querySelector("#playersPanel");
 const chatMessagesEl = document.querySelector("#chatMessages");
+const mobileChatPreviewEl = document.querySelector("#mobileChatPreview");
 const chatInput = document.querySelector("#chatInput");
 const sendChatBtn = document.querySelector("#sendChatBtn");
 const setupPanel = document.querySelector("#setupPanel");
@@ -71,6 +72,7 @@ let creatingRoom = false;
 let lastChatCount = 0;
 let eraseLimit = 3;
 let eraseUsed = 0;
+let audioContext = null;
 
 localStorage.setItem(playerKey, playerId);
 
@@ -81,6 +83,29 @@ function hasFirebaseConfig() {
 function setMessage(text, tone = "normal") {
   messageEl.textContent = text;
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
+}
+
+function playTone(kind) {
+  try {
+    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+
+    oscillator.type = kind === "correct" ? "sine" : "triangle";
+    oscillator.frequency.setValueAtTime(kind === "correct" ? 660 : 150, now);
+    oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 990 : 90, now + 0.12);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.05 : 0.075, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.18);
+  } catch {
+    // Sound is optional; some mobile browsers block audio until interaction.
+  }
 }
 
 function firebaseErrorMessage(error) {
@@ -541,6 +566,7 @@ function renderChat() {
 
   if (!messages.length) {
     chatMessagesEl.innerHTML = '<p class="chat-empty">아직 메시지가 없습니다.</p>';
+    mobileChatPreviewEl.innerHTML = '<p class="chat-empty">대화 없음</p>';
     return;
   }
 
@@ -549,6 +575,20 @@ function renderChat() {
     chatMessagesEl.scrollTop + chatMessagesEl.clientHeight >= chatMessagesEl.scrollHeight - 24;
 
   chatMessagesEl.innerHTML = messages
+    .map((message) => {
+      const mine = message.playerId === playerId ? " mine" : "";
+      const name = escapeHtml(message.name || "플레이어");
+      const text = escapeHtml(message.text || "");
+      return `
+        <div class="chat-message${mine}">
+          <strong>${name}</strong>
+          <span>${text}</span>
+        </div>
+      `;
+    })
+    .join("");
+  mobileChatPreviewEl.innerHTML = messages
+    .slice(-3)
     .map((message) => {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
@@ -712,6 +752,7 @@ async function inputNumber(value) {
   }
 
   playerGrid[row][col] = value;
+  playTone(value === solution[row][col] ? "correct" : "wrong");
   renderBoard();
   await syncPlayer();
 }

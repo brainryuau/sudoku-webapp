@@ -13,6 +13,7 @@
           <p class="eyebrow">Sudoku Battle</p>
           <h1>대전모드</h1>
         </div>
+        <div id="mobileChatPreview" class="mobile-chat-preview" aria-label="최근 채팅"></div>
         <div class="stats">
           <a class="mode-link" href="./index.html">혼자하기</a>
           <div class="stat">
@@ -56,9 +57,15 @@
             </div>
           </div>
 
-          <div id="battleMessage" class="message battle-message" role="status" aria-live="polite">
-            방을 만들거나 코드를 입력해서 참가하세요.
-          </div>
+          <div id="playersPanel" class="progress-panel players-panel"></div>
+
+          <section class="chat-panel" aria-label="대전 채팅">
+            <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+            <div class="chat-form">
+              <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
+              <button id="sendChatBtn" class="primary" type="button">전송</button>
+            </div>
+          </section>
 
           <div class="number-pad" aria-label="숫자 입력">
             <button data-battle-number="1">1</button>
@@ -78,19 +85,13 @@
             <button id="leaveRoomBtn" class="secondary danger">방 나가기</button>
           </div>
 
-          <div id="playersPanel" class="progress-panel players-panel"></div>
-
-          <section class="chat-panel" aria-label="대전 채팅">
-            <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
-            <div class="chat-form">
-              <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
-              <button id="sendChatBtn" class="primary" type="button">전송</button>
-            </div>
-          </section>
+          <div id="battleMessage" class="message battle-message" role="status" aria-live="polite">
+            방을 만들거나 코드를 입력해서 참가하세요.
+          </div>
         </aside>
       </section>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-8"></script>
+    <script type="module" src="./battle.js?v=20260531-9"></script>
   </body>
 </html>
