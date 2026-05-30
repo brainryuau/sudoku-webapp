@@ -99,6 +99,7 @@ function firebaseErrorMessage(error) {
 async function runAction(action, workingText) {
   try {
     if (workingText) setMessage(workingText);
+    await new Promise((resolve) => setTimeout(resolve, 30));
     await action();
   } catch (error) {
     console.error(error);
