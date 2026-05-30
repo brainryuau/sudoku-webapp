@@ -65,6 +65,7 @@ let seconds = 0;
 let timerId = null;
 let unsubscribeRoom = null;
 let isFinished = false;
+let creatingRoom = false;
 
 localStorage.setItem(playerKey, playerId);
 
@@ -108,6 +109,10 @@ async function runAction(action, workingText) {
     ]);
   } catch (error) {
     console.error(error);
+    if (creatingRoom) {
+      resetBattleState("방을 Firebase에 저장하지 못했어요. Database 주소와 Rules를 확인한 뒤 새 방을 다시 만들어주세요.");
+      return;
+    }
     if (roomCode) roomCodeEl.textContent = roomCode;
     setMessage(firebaseErrorMessage(error), "warn");
   }
@@ -296,6 +301,36 @@ function saveSession() {
   );
 }
 
+function clearSession() {
+  localStorage.removeItem(sessionKey);
+}
+
+function resetBattleState(text = "방을 만들거나 코드를 입력해서 참가하세요.") {
+  clearInterval(timerId);
+  if (unsubscribeRoom) {
+    unsubscribeRoom();
+    unsubscribeRoom = null;
+  }
+  roomCode = "";
+  room = null;
+  solution = [];
+  puzzle = [];
+  playerGrid = [];
+  fixedCells = [];
+  selected = { row: 0, col: 0 };
+  seconds = 0;
+  isFinished = false;
+  creatingRoom = false;
+  clearSession();
+  boardEl.innerHTML = "";
+  playersPanel.innerHTML = "";
+  chatMessagesEl.innerHTML = "";
+  roomCodeEl.textContent = "----";
+  timerEl.textContent = "00:00";
+  setupPanel.classList.remove("is-hidden");
+  setMessage(text, "warn");
+}
+
 function loadSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(sessionKey) || "null");
@@ -467,7 +502,7 @@ function renderChat() {
 function handleRoomUpdate(snapshot) {
   room = snapshot.val();
   if (!room) {
-    setMessage("방을 찾을 수 없습니다.", "warn");
+    resetBattleState("저장된 방을 Firebase에서 찾을 수 없어요. 새 방을 다시 만들어주세요.");
     return;
   }
 
@@ -495,6 +530,7 @@ function watchRoom() {
 }
 
 async function createRoom() {
+  creatingRoom = true;
   playerName = getName();
   roomCode = makeRoomCode();
   roomCodeEl.textContent = roomCode;
@@ -531,6 +567,7 @@ async function createRoom() {
   startTimer(true);
   watchRoom();
   saveSession();
+  creatingRoom = false;
   setMessage("방을 만들었어요. 방 코드를 상대에게 보내세요.");
 }
 
