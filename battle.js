@@ -108,6 +108,7 @@ async function runAction(action, workingText) {
     ]);
   } catch (error) {
     console.error(error);
+    if (roomCode) roomCodeEl.textContent = roomCode;
     setMessage(firebaseErrorMessage(error), "warn");
   }
 }
@@ -500,6 +501,11 @@ async function createRoom() {
   seconds = 0;
   isFinished = false;
   roomCode = makeRoomCode();
+  roomCodeEl.textContent = roomCode;
+  setupPanel.classList.add("is-hidden");
+  renderBoard();
+  saveSession();
+  setMessage(`방 코드 ${roomCode} 생성 완료. Firebase에 저장하는 중입니다...`);
 
   await set(ref(db, `rooms/${roomCode}`), {
     status: "playing",
@@ -519,8 +525,6 @@ async function createRoom() {
     chat: {},
   });
 
-  setupPanel.classList.add("is-hidden");
-  roomCodeEl.textContent = roomCode;
   startTimer(true);
   watchRoom();
   saveSession();
