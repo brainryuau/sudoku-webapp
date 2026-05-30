@@ -77,6 +77,35 @@ function setMessage(text, tone = "normal") {
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
 }
 
+function firebaseErrorMessage(error) {
+  const code = error?.code || "";
+  const message = error?.message || String(error);
+
+  if (code.includes("permission-denied")) {
+    return "Firebase 권한이 막혀 있어요. Realtime Database 규칙을 test mode로 열어주세요.";
+  }
+
+  if (message.includes("Database URL") || message.includes("databaseURL")) {
+    return "Firebase Realtime Database 주소가 맞지 않아요. Database 화면의 URL을 확인해주세요.";
+  }
+
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Firebase에 연결하지 못했어요. 인터넷 연결이나 Firebase 설정을 확인해주세요.";
+  }
+
+  return `오류가 발생했어요: ${message}`;
+}
+
+async function runAction(action, workingText) {
+  try {
+    if (workingText) setMessage(workingText);
+    await action();
+  } catch (error) {
+    console.error(error);
+    setMessage(firebaseErrorMessage(error), "warn");
+  }
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -602,18 +631,20 @@ difficultyButtons.forEach((button) => {
 });
 
 numberButtons.forEach((button) => {
-  button.addEventListener("click", () => inputNumber(Number(button.dataset.battleNumber)));
+  button.addEventListener("click", () => runAction(() => inputNumber(Number(button.dataset.battleNumber))));
 });
 
-createRoomBtn.addEventListener("click", createRoom);
-joinRoomBtn.addEventListener("click", joinRoom);
-copyCodeBtn.addEventListener("click", copyCode);
-eraseBtn.addEventListener("click", eraseSelected);
-chatForm.addEventListener("submit", sendChat);
+createRoomBtn.addEventListener("click", () => runAction(createRoom, "방을 만드는 중입니다..."));
+joinRoomBtn.addEventListener("click", () => runAction(joinRoom, "방에 참가하는 중입니다..."));
+copyCodeBtn.addEventListener("click", () => runAction(copyCode));
+eraseBtn.addEventListener("click", () => runAction(eraseSelected));
+chatForm.addEventListener("submit", (event) => runAction(() => sendChat(event)));
 
 document.addEventListener("keydown", (event) => {
-  if (event.key >= "1" && event.key <= "9") inputNumber(Number(event.key));
-  if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") eraseSelected();
+  if (event.key >= "1" && event.key <= "9") runAction(() => inputNumber(Number(event.key)));
+  if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
+    runAction(eraseSelected);
+  }
 });
 
 updateDifficultyButtons();
