@@ -496,12 +496,15 @@ function watchRoom() {
 
 async function createRoom() {
   playerName = getName();
+  roomCode = makeRoomCode();
+  roomCodeEl.textContent = roomCode;
+  setMessage(`방 코드 ${roomCode} 생성 완료. 퍼즐을 준비하는 중입니다...`);
+  await new Promise((resolve) => setTimeout(resolve, 30));
+
   generateGame(difficulty);
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
   isFinished = false;
-  roomCode = makeRoomCode();
-  roomCodeEl.textContent = roomCode;
   setupPanel.classList.add("is-hidden");
   renderBoard();
   saveSession();
