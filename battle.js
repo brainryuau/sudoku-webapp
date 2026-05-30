@@ -13,7 +13,7 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyDThHT_h6rZpfsa6p6yPDbjBzhAivm5GB8",
   authDomain: "sudoku-2db43.firebaseapp.com",
-  databaseURL: "https://sudoku-2db43-default-rtdb.firebaseio.com",
+  databaseURL: "https://sudoku-2db43-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "sudoku-2db43",
   storageBucket: "sudoku-2db43.firebasestorage.app",
   messagingSenderId: "872508216238",
