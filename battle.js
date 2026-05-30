@@ -7,6 +7,7 @@ import {
   onValue,
   get,
   push,
+  remove,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
@@ -32,6 +33,7 @@ const sendChatBtn = document.querySelector("#sendChatBtn");
 const setupPanel = document.querySelector("#setupPanel");
 const playerNameInput = document.querySelector("#playerName");
 const joinCodeInput = document.querySelector("#joinCode");
+const eraseLimitInput = document.querySelector("#eraseLimit");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const copyCodeBtn = document.querySelector("#copyCodeBtn");
@@ -67,6 +69,8 @@ let unsubscribeRoom = null;
 let isFinished = false;
 let creatingRoom = false;
 let lastChatCount = 0;
+let eraseLimit = 3;
+let eraseUsed = 0;
 
 localStorage.setItem(playerKey, playerId);
 
@@ -295,6 +299,28 @@ function getName() {
   return playerNameInput.value.trim() || "플레이어";
 }
 
+function getEraseLimit() {
+  const value = Number(eraseLimitInput?.value);
+  if (!Number.isFinite(value)) return 3;
+  return Math.max(0, Math.min(9, Math.floor(value)));
+}
+
+function eraseRemaining() {
+  return Math.max(0, eraseLimit - eraseUsed);
+}
+
+function updateEraseButton() {
+  eraseBtn.textContent = `지우기 ${eraseRemaining()}/${eraseLimit}`;
+  eraseBtn.disabled = isFinished || !roomCode || eraseRemaining() <= 0;
+}
+
+function setPlayControlsDisabled(disabled) {
+  numberButtons.forEach((button) => {
+    button.disabled = disabled;
+  });
+  eraseBtn.disabled = disabled || eraseRemaining() <= 0;
+}
+
 function saveSession() {
   if (!roomCode) return;
   localStorage.setItem(
@@ -306,6 +332,8 @@ function saveSession() {
       playerGrid,
       selected,
       seconds,
+      eraseLimit,
+      eraseUsed,
     }),
   );
 }
@@ -330,6 +358,8 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   seconds = 0;
   isFinished = false;
   creatingRoom = false;
+  eraseLimit = getEraseLimit();
+  eraseUsed = 0;
   clearSession();
   boardEl.innerHTML = "";
   playersPanel.innerHTML = "";
@@ -337,11 +367,22 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   roomCodeEl.textContent = "----";
   timerEl.textContent = "00:00";
   setupPanel.classList.remove("is-hidden");
+  setPlayControlsDisabled(true);
+  updateEraseButton();
   setMessage(text, "warn");
 }
 
 async function leaveRoom() {
+  const leavingCode = roomCode;
+  const isOwner = room?.ownerId === playerId;
   resetBattleState("방에서 나왔어요. 새 방을 만들거나 다른 방에 참가하세요.");
+  if (leavingCode && db) {
+    if (isOwner) {
+      await remove(ref(db, `rooms/${leavingCode}`));
+    } else {
+      await remove(ref(db, `rooms/${leavingCode}/players/${playerId}`));
+    }
+  }
 }
 
 function isValidRoomData(value) {
@@ -358,6 +399,8 @@ function loadSession() {
     playerGrid = isGrid(saved.playerGrid) ? saved.playerGrid : [];
     selected = saved.selected || { row: 0, col: 0 };
     seconds = Number(saved.seconds) || 0;
+    eraseLimit = Number.isInteger(saved.eraseLimit) ? saved.eraseLimit : 3;
+    eraseUsed = Number.isInteger(saved.eraseUsed) ? saved.eraseUsed : 0;
     playerNameInput.value = playerName;
     return true;
   } catch {
@@ -409,6 +452,7 @@ async function syncPlayer(extra = {}) {
     payload.finishedAt = serverTimestamp();
     isFinished = true;
     clearInterval(timerId);
+    setPlayControlsDisabled(true);
     await update(ref(db, `rooms/${roomCode}`), {
       status: "finished",
       winnerId: playerId,
@@ -483,7 +527,7 @@ function renderPlayers() {
           <span>${player.name || "플레이어"}${id === playerId ? " (나)" : ""}</span>
           <strong>${player.progress || 0}/81</strong>
         </div>
-        <p>${formatTime(player.seconds || 0)}${winner}</p>
+        <p>${formatTime(player.seconds || 0)} · 지우기 ${player.eraseUsed || 0}/${room?.eraseLimit ?? eraseLimit}${winner}</p>
       `;
     })
     .join("");
@@ -538,6 +582,7 @@ function handleRoomUpdate(snapshot) {
   }
 
   roomCodeEl.textContent = roomCode;
+  eraseLimit = Number.isInteger(room.eraseLimit) ? room.eraseLimit : eraseLimit;
   solution = room.solution;
   puzzle = room.puzzle;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
@@ -549,9 +594,12 @@ function handleRoomUpdate(snapshot) {
   if (room.status === "finished") {
     isFinished = true;
     clearInterval(timerId);
-    setMessage(room.winnerId === playerId ? "승리했어요!" : "상대가 먼저 완성했어요.");
+    setPlayControlsDisabled(true);
+    setMessage(room.winnerId === playerId ? "승리했어요!" : "진정한 바보입니다", room.winnerId === playerId ? "normal" : "warn");
   } else {
     isFinished = false;
+    setPlayControlsDisabled(false);
+    updateEraseButton();
   }
 }
 
@@ -563,6 +611,8 @@ function watchRoom() {
 async function createRoom() {
   creatingRoom = true;
   playerName = getName();
+  eraseLimit = getEraseLimit();
+  eraseUsed = 0;
   roomCode = makeRoomCode();
   roomCodeEl.textContent = roomCode;
   setMessage(`방 코드 ${roomCode} 생성 완료. 퍼즐을 준비하는 중입니다...`);
@@ -579,7 +629,9 @@ async function createRoom() {
 
   await set(ref(db, `rooms/${roomCode}`), {
     status: "playing",
+    ownerId: playerId,
     difficulty,
+    eraseLimit,
     puzzle,
     solution,
     createdAt: serverTimestamp(),
@@ -588,6 +640,7 @@ async function createRoom() {
         name: playerName,
         progress: correctCount(),
         seconds: 0,
+        eraseUsed,
         done: false,
         joinedAt: serverTimestamp(),
       },
@@ -599,6 +652,7 @@ async function createRoom() {
   watchRoom();
   saveSession();
   creatingRoom = false;
+  updateEraseButton();
   setMessage("방을 만들었어요. 방 코드를 상대에게 보내세요.");
 }
 
@@ -624,6 +678,8 @@ async function joinRoom() {
 
   solution = nextRoom.solution;
   puzzle = nextRoom.puzzle;
+  eraseLimit = Number.isInteger(nextRoom.eraseLimit) ? nextRoom.eraseLimit : 3;
+  eraseUsed = 0;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
@@ -633,6 +689,7 @@ async function joinRoom() {
     name: playerName,
     progress: correctCount(),
     seconds: 0,
+    eraseUsed,
     done: false,
     joinedAt: serverTimestamp(),
   });
@@ -642,6 +699,7 @@ async function joinRoom() {
   startTimer(true);
   watchRoom();
   saveSession();
+  updateEraseButton();
   setMessage("방에 참가했어요. 같은 퍼즐로 대전을 시작합니다.");
 }
 
@@ -660,15 +718,26 @@ async function inputNumber(value) {
 
 async function eraseSelected() {
   if (!roomCode || isFinished) return;
+  if (eraseRemaining() <= 0) {
+    setMessage("지우기 횟수를 모두 사용했어요.", "warn");
+    updateEraseButton();
+    return;
+  }
   const { row, col } = selected;
   if (fixedCells[row][col]) {
     setMessage("처음부터 채워진 칸은 지울 수 없어요.", "warn");
     return;
   }
+  if (!playerGrid[row][col]) {
+    setMessage("이미 비어 있는 칸이에요.", "warn");
+    return;
+  }
 
   playerGrid[row][col] = 0;
+  eraseUsed += 1;
+  updateEraseButton();
   renderBoard();
-  await syncPlayer();
+  await syncPlayer({ eraseUsed });
 }
 
 async function copyCode() {
@@ -727,7 +796,10 @@ function boot() {
     startTimer(false);
     watchRoom();
     setMessage("저장된 대전 방을 불러왔어요.");
+  } else {
+    setPlayControlsDisabled(true);
   }
+  updateEraseButton();
 }
 
 difficultyButtons.forEach((button) => {

@@ -41,6 +41,10 @@
               방 코드
               <input id="joinCode" maxlength="6" placeholder="예: A7K2Q9" />
             </label>
+            <label>
+              지우기 횟수
+              <input id="eraseLimit" min="0" max="9" type="number" value="3" />
+            </label>
             <div class="difficulty" role="group" aria-label="대전 난이도">
               <button class="difficulty-btn active" data-battle-difficulty="easy">쉬움</button>
               <button class="difficulty-btn" data-battle-difficulty="medium">보통</button>
@@ -87,6 +91,6 @@
       </section>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-6"></script>
+    <script type="module" src="./battle.js?v=20260531-7"></script>
   </body>
 </html>
