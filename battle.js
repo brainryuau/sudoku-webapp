@@ -13,11 +13,12 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyDThHT_h6rZpfsa6p6yPDbjBzhAivm5GB8",
   authDomain: "sudoku-2db43.firebaseapp.com",
+  databaseURL: "https://sudoku-2db43-default-rtdb.firebaseio.com",
   projectId: "sudoku-2db43",
   storageBucket: "sudoku-2db43.firebasestorage.app",
   messagingSenderId: "872508216238",
   appId: "1:872508216238:web:d91ef230674f0041662e3f",
-  measurementId: "G-235782ENKG"
+  measurementId: "G-235782ENKG",
 };
 
 const boardEl = document.querySelector("#battleBoard");
