@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-8" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-11" />
   </head>
   <body>
     <main class="app-shell">
@@ -12,6 +12,10 @@
         <div>
           <p class="eyebrow">Sudoku Battle</p>
           <h1>대전모드</h1>
+          <div class="mobile-time-title">
+            <span>시간</span>
+            <strong id="mobileBattleTimer">00:00</strong>
+          </div>
         </div>
         <div id="mobileChatPreview" class="mobile-chat-preview" aria-label="최근 채팅"></div>
         <div class="stats">
@@ -46,6 +50,14 @@
               지우기 횟수
               <input id="eraseLimit" min="0" max="9" type="number" value="3" />
             </label>
+            <label>
+              힌트 횟수
+              <input id="hintLimit" min="0" max="9" type="number" value="2" />
+            </label>
+            <div class="difficulty" role="group" aria-label="대화 모드">
+              <button class="difficulty-btn active" data-chat-mode="free">일반대화</button>
+              <button class="difficulty-btn" data-chat-mode="earned">게임대화</button>
+            </div>
             <div class="difficulty" role="group" aria-label="대전 난이도">
               <button class="difficulty-btn active" data-battle-difficulty="easy">쉬움</button>
               <button class="difficulty-btn" data-battle-difficulty="medium">보통</button>
@@ -81,7 +93,7 @@
 
           <div class="actions battle-actions">
             <button id="battleEraseBtn" class="secondary">지우기</button>
-            <button id="copyCodeBtn" class="primary">코드 복사</button>
+            <button id="hintBtn" class="primary">힌트</button>
             <button id="leaveRoomBtn" class="secondary danger">방 나가기</button>
           </div>
 
@@ -90,8 +102,16 @@
           </div>
         </aside>
       </section>
+
+      <div class="mobile-bottom-stats" aria-label="방 정보">
+        <a class="mode-link" href="./index.html">혼자하기</a>
+        <div class="stat">
+          <span>방 코드</span>
+          <strong id="mobileRoomCode">----</strong>
+        </div>
+      </div>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-9"></script>
+    <script type="module" src="./battle.js?v=20260531-11"></script>
   </body>
 </html>

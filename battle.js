@@ -24,7 +24,9 @@ const firebaseConfig = {
 
 const boardEl = document.querySelector("#battleBoard");
 const roomCodeEl = document.querySelector("#roomCode");
+const mobileRoomCodeEl = document.querySelector("#mobileRoomCode");
 const timerEl = document.querySelector("#battleTimer");
+const mobileTimerEl = document.querySelector("#mobileBattleTimer");
 const messageEl = document.querySelector("#battleMessage");
 const playersPanel = document.querySelector("#playersPanel");
 const chatMessagesEl = document.querySelector("#chatMessages");
@@ -35,12 +37,14 @@ const setupPanel = document.querySelector("#setupPanel");
 const playerNameInput = document.querySelector("#playerName");
 const joinCodeInput = document.querySelector("#joinCode");
 const eraseLimitInput = document.querySelector("#eraseLimit");
+const hintLimitInput = document.querySelector("#hintLimit");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
-const copyCodeBtn = document.querySelector("#copyCodeBtn");
+const hintBtn = document.querySelector("#hintBtn");
 const eraseBtn = document.querySelector("#battleEraseBtn");
 const leaveRoomBtn = document.querySelector("#leaveRoomBtn");
 const difficultyButtons = [...document.querySelectorAll("[data-battle-difficulty]")];
+const chatModeButtons = [...document.querySelectorAll("[data-chat-mode]")];
 const numberButtons = [...document.querySelectorAll("[data-battle-number]")];
 
 const size = 9;
@@ -72,6 +76,10 @@ let creatingRoom = false;
 let lastChatCount = 0;
 let eraseLimit = 3;
 let eraseUsed = 0;
+let hintLimit = 2;
+let hintUsed = 0;
+let chatMode = "free";
+let chatCredits = 0;
 let audioContext = null;
 
 localStorage.setItem(playerKey, playerId);
@@ -85,6 +93,11 @@ function setMessage(text, tone = "normal") {
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
 }
 
+function setRoomCodeText(value) {
+  roomCodeEl.textContent = value;
+  if (mobileRoomCodeEl) mobileRoomCodeEl.textContent = value;
+}
+
 function playTone(kind) {
   try {
     audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -96,7 +109,7 @@ function playTone(kind) {
     oscillator.frequency.setValueAtTime(kind === "correct" ? 660 : 150, now);
     oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 990 : 90, now + 0.12);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.05 : 0.075, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.2 : 0.24, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
 
     oscillator.connect(gain);
@@ -143,7 +156,7 @@ async function runAction(action, workingText) {
       resetBattleState("방을 Firebase에 저장하지 못했어요. Database 주소와 Rules를 확인한 뒤 새 방을 다시 만들어주세요.");
       return;
     }
-    if (roomCode) roomCodeEl.textContent = roomCode;
+    if (roomCode) setRoomCodeText(roomCode);
     setMessage(firebaseErrorMessage(error), "warn");
   }
 }
@@ -330,8 +343,18 @@ function getEraseLimit() {
   return Math.max(0, Math.min(9, Math.floor(value)));
 }
 
+function getHintLimit() {
+  const value = Number(hintLimitInput?.value);
+  if (!Number.isFinite(value)) return 2;
+  return Math.max(0, Math.min(9, Math.floor(value)));
+}
+
 function eraseRemaining() {
   return Math.max(0, eraseLimit - eraseUsed);
+}
+
+function hintRemaining() {
+  return Math.max(0, hintLimit - hintUsed);
 }
 
 function updateEraseButton() {
@@ -339,11 +362,24 @@ function updateEraseButton() {
   eraseBtn.disabled = isFinished || !roomCode || eraseRemaining() <= 0;
 }
 
+function updateHintButton() {
+  hintBtn.textContent = `힌트 ${hintRemaining()}/${hintLimit}`;
+  hintBtn.disabled = isFinished || !roomCode || hintRemaining() <= 0;
+}
+
+function updateChatInputState() {
+  const locked = chatMode === "earned" && chatCredits <= 0;
+  chatInput.placeholder = locked ? "정답을 맞히면 1번 말할 수 있어요" : "메시지 입력";
+  chatInput.disabled = !roomCode || locked;
+  sendChatBtn.disabled = !roomCode || locked;
+}
+
 function setPlayControlsDisabled(disabled) {
   numberButtons.forEach((button) => {
     button.disabled = disabled;
   });
   eraseBtn.disabled = disabled || eraseRemaining() <= 0;
+  hintBtn.disabled = disabled || hintRemaining() <= 0;
 }
 
 function saveSession() {
@@ -359,6 +395,10 @@ function saveSession() {
       seconds,
       eraseLimit,
       eraseUsed,
+      hintLimit,
+      hintUsed,
+      chatMode,
+      chatCredits,
     }),
   );
 }
@@ -385,15 +425,21 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   creatingRoom = false;
   eraseLimit = getEraseLimit();
   eraseUsed = 0;
+  hintLimit = getHintLimit();
+  hintUsed = 0;
+  chatCredits = 0;
   clearSession();
   boardEl.innerHTML = "";
   playersPanel.innerHTML = "";
   chatMessagesEl.innerHTML = "";
-  roomCodeEl.textContent = "----";
+  setRoomCodeText("----");
   timerEl.textContent = "00:00";
+  if (mobileTimerEl) mobileTimerEl.textContent = "00:00";
   setupPanel.classList.remove("is-hidden");
   setPlayControlsDisabled(true);
   updateEraseButton();
+  updateHintButton();
+  updateChatInputState();
   setMessage(text, "warn");
 }
 
@@ -426,6 +472,10 @@ function loadSession() {
     seconds = Number(saved.seconds) || 0;
     eraseLimit = Number.isInteger(saved.eraseLimit) ? saved.eraseLimit : 3;
     eraseUsed = Number.isInteger(saved.eraseUsed) ? saved.eraseUsed : 0;
+    hintLimit = Number.isInteger(saved.hintLimit) ? saved.hintLimit : 2;
+    hintUsed = Number.isInteger(saved.hintUsed) ? saved.hintUsed : 0;
+    chatMode = saved.chatMode || "free";
+    chatCredits = Number.isInteger(saved.chatCredits) ? saved.chatCredits : 0;
     playerNameInput.value = playerName;
     return true;
   } catch {
@@ -438,10 +488,12 @@ function startTimer(reset = false) {
   clearInterval(timerId);
   if (reset) seconds = 0;
   timerEl.textContent = formatTime(seconds);
+  if (mobileTimerEl) mobileTimerEl.textContent = formatTime(seconds);
   timerId = setInterval(async () => {
     if (!roomCode || isFinished) return;
     seconds += 1;
     timerEl.textContent = formatTime(seconds);
+    if (mobileTimerEl) mobileTimerEl.textContent = formatTime(seconds);
     saveSession();
     await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { seconds });
   }, 1000);
@@ -552,7 +604,7 @@ function renderPlayers() {
           <span>${player.name || "플레이어"}${id === playerId ? " (나)" : ""}</span>
           <strong>${player.progress || 0}/81</strong>
         </div>
-        <p>${formatTime(player.seconds || 0)} · 지우기 ${player.eraseUsed || 0}/${room?.eraseLimit ?? eraseLimit}${winner}</p>
+        <p>${formatTime(player.seconds || 0)} · 지우기 ${player.eraseUsed || 0}/${room?.eraseLimit ?? eraseLimit} · 힌트 ${player.hintUsed || 0}/${room?.hintLimit ?? hintLimit}${winner}</p>
       `;
     })
     .join("");
@@ -621,8 +673,10 @@ function handleRoomUpdate(snapshot) {
     return;
   }
 
-  roomCodeEl.textContent = roomCode;
+  setRoomCodeText(roomCode);
   eraseLimit = Number.isInteger(room.eraseLimit) ? room.eraseLimit : eraseLimit;
+  hintLimit = Number.isInteger(room.hintLimit) ? room.hintLimit : hintLimit;
+  chatMode = room.chatMode || chatMode;
   solution = room.solution;
   puzzle = room.puzzle;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
@@ -635,11 +689,14 @@ function handleRoomUpdate(snapshot) {
     isFinished = true;
     clearInterval(timerId);
     setPlayControlsDisabled(true);
+    updateChatInputState();
     setMessage(room.winnerId === playerId ? "승리했어요!" : "진정한 바보입니다", room.winnerId === playerId ? "normal" : "warn");
   } else {
     isFinished = false;
     setPlayControlsDisabled(false);
     updateEraseButton();
+    updateHintButton();
+    updateChatInputState();
   }
 }
 
@@ -653,8 +710,11 @@ async function createRoom() {
   playerName = getName();
   eraseLimit = getEraseLimit();
   eraseUsed = 0;
+  hintLimit = getHintLimit();
+  hintUsed = 0;
+  chatCredits = 0;
   roomCode = makeRoomCode();
-  roomCodeEl.textContent = roomCode;
+  setRoomCodeText(roomCode);
   setMessage(`방 코드 ${roomCode} 생성 완료. 퍼즐을 준비하는 중입니다...`);
   await new Promise((resolve) => setTimeout(resolve, 30));
 
@@ -672,6 +732,8 @@ async function createRoom() {
     ownerId: playerId,
     difficulty,
     eraseLimit,
+    hintLimit,
+    chatMode,
     puzzle,
     solution,
     createdAt: serverTimestamp(),
@@ -681,6 +743,8 @@ async function createRoom() {
         progress: correctCount(),
         seconds: 0,
         eraseUsed,
+        hintUsed,
+        chatCredits,
         done: false,
         joinedAt: serverTimestamp(),
       },
@@ -693,6 +757,8 @@ async function createRoom() {
   saveSession();
   creatingRoom = false;
   updateEraseButton();
+  updateHintButton();
+  updateChatInputState();
   setMessage("방을 만들었어요. 방 코드를 상대에게 보내세요.");
 }
 
@@ -720,6 +786,10 @@ async function joinRoom() {
   puzzle = nextRoom.puzzle;
   eraseLimit = Number.isInteger(nextRoom.eraseLimit) ? nextRoom.eraseLimit : 3;
   eraseUsed = 0;
+  hintLimit = Number.isInteger(nextRoom.hintLimit) ? nextRoom.hintLimit : 2;
+  hintUsed = 0;
+  chatMode = nextRoom.chatMode || "free";
+  chatCredits = 0;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
@@ -730,16 +800,20 @@ async function joinRoom() {
     progress: correctCount(),
     seconds: 0,
     eraseUsed,
+    hintUsed,
+    chatCredits,
     done: false,
     joinedAt: serverTimestamp(),
   });
 
   setupPanel.classList.add("is-hidden");
-  roomCodeEl.textContent = roomCode;
+  setRoomCodeText(roomCode);
   startTimer(true);
   watchRoom();
   saveSession();
   updateEraseButton();
+  updateHintButton();
+  updateChatInputState();
   setMessage("방에 참가했어요. 같은 퍼즐로 대전을 시작합니다.");
 }
 
@@ -751,10 +825,47 @@ async function inputNumber(value) {
     return;
   }
 
+  const previousValue = playerGrid[row][col];
   playerGrid[row][col] = value;
-  playTone(value === solution[row][col] ? "correct" : "wrong");
+  const correct = value === solution[row][col];
+  if (chatMode === "earned" && correct && previousValue !== solution[row][col]) {
+    chatCredits += 1;
+  }
+  playTone(correct ? "correct" : "wrong");
   renderBoard();
-  await syncPlayer();
+  await syncPlayer({ chatCredits });
+}
+
+async function useHint() {
+  if (!roomCode || isFinished) return;
+  if (hintRemaining() <= 0) {
+    setMessage("힌트를 모두 사용했어요.", "warn");
+    updateHintButton();
+    return;
+  }
+
+  const empties = [];
+  for (let row = 0; row < size; row += 1) {
+    for (let col = 0; col < size; col += 1) {
+      if (!fixedCells[row][col] && playerGrid[row][col] !== solution[row][col]) {
+        empties.push({ row, col });
+      }
+    }
+  }
+
+  if (!empties.length) return;
+  const target =
+    !fixedCells[selected.row]?.[selected.col] &&
+    playerGrid[selected.row]?.[selected.col] !== solution[selected.row]?.[selected.col]
+      ? selected
+      : empties[0];
+  playerGrid[target.row][target.col] = solution[target.row][target.col];
+  selected = target;
+  hintUsed += 1;
+  updateHintButton();
+  playTone("correct");
+  renderBoard();
+  await syncPlayer({ hintUsed, chatCredits });
 }
 
 async function eraseSelected() {
@@ -799,14 +910,25 @@ async function sendChat() {
   chatInput.value = "";
   sendChatBtn.disabled = true;
   try {
+    if (chatMode === "earned" && chatCredits <= 0) {
+      setMessage("정답을 맞히면 1번 말할 수 있어요.", "warn");
+      updateChatInputState();
+      return;
+    }
+    if (chatMode === "earned") chatCredits -= 1;
     await set(push(ref(db, `rooms/${roomCode}/chat`)), {
       playerId,
       name: playerName,
       text,
       createdAt: Date.now(),
     });
+    if (chatMode === "earned") {
+      await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { chatCredits });
+      saveSession();
+    }
   } finally {
     sendChatBtn.disabled = false;
+    updateChatInputState();
   }
 }
 
@@ -816,12 +938,18 @@ function updateDifficultyButtons() {
   });
 }
 
+function updateChatModeButtons() {
+  chatModeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.chatMode === chatMode);
+  });
+}
+
 function boot() {
   if (!hasFirebaseConfig()) {
     setMessage("대전모드를 쓰려면 battle.js에 Firebase 설정값을 먼저 넣어야 합니다.", "warn");
     createRoomBtn.disabled = true;
     joinRoomBtn.disabled = true;
-    copyCodeBtn.disabled = true;
+    hintBtn.disabled = true;
     eraseBtn.disabled = true;
     chatInput.disabled = true;
     sendChatBtn.disabled = true;
@@ -833,7 +961,7 @@ function boot() {
 
   if (loadSession()) {
     setupPanel.classList.add("is-hidden");
-    roomCodeEl.textContent = roomCode;
+    setRoomCodeText(roomCode);
     startTimer(false);
     watchRoom();
     setMessage("저장된 대전 방을 불러왔어요.");
@@ -841,6 +969,9 @@ function boot() {
     setPlayControlsDisabled(true);
   }
   updateEraseButton();
+  updateHintButton();
+  updateChatInputState();
+  updateChatModeButtons();
 }
 
 difficultyButtons.forEach((button) => {
@@ -850,13 +981,21 @@ difficultyButtons.forEach((button) => {
   });
 });
 
+chatModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    chatMode = button.dataset.chatMode;
+    updateChatModeButtons();
+    updateChatInputState();
+  });
+});
+
 numberButtons.forEach((button) => {
   button.addEventListener("click", () => runAction(() => inputNumber(Number(button.dataset.battleNumber))));
 });
 
 createRoomBtn.addEventListener("click", () => runAction(createRoom, "방을 만드는 중입니다..."));
 joinRoomBtn.addEventListener("click", () => runAction(joinRoom, "방에 참가하는 중입니다..."));
-copyCodeBtn.addEventListener("click", () => runAction(copyCode));
+hintBtn.addEventListener("click", () => runAction(useHint));
 eraseBtn.addEventListener("click", () => runAction(eraseSelected));
 leaveRoomBtn.addEventListener("click", () => runAction(leaveRoom));
 sendChatBtn.addEventListener("click", () => runAction(sendChat));
