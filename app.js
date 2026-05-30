@@ -9,6 +9,7 @@ const numberButtons = [...document.querySelectorAll("[data-number]")];
 
 const size = 9;
 const boxSize = 3;
+const saveKey = "classic-sudoku-game-state-v1";
 const difficultySettings = {
   easy: { label: "쉬움", clues: 45 },
   medium: { label: "보통", clues: 36 },
@@ -41,6 +42,14 @@ function cloneGrid(grid) {
 
 function makeEmptyGrid() {
   return Array.from({ length: size }, () => Array(size).fill(0));
+}
+
+function isGrid(value) {
+  return (
+    Array.isArray(value) &&
+    value.length === size &&
+    value.every((row) => Array.isArray(row) && row.length === size)
+  );
 }
 
 function isValid(grid, row, col, value) {
@@ -153,19 +162,70 @@ function generateGame() {
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
 }
 
+function saveGame() {
+  if (gameComplete) {
+    localStorage.removeItem(saveKey);
+    return;
+  }
+
+  const state = {
+    difficulty,
+    solution,
+    puzzle,
+    playerGrid,
+    selected,
+    mistakes,
+    seconds,
+  };
+
+  localStorage.setItem(saveKey, JSON.stringify(state));
+}
+
+function loadSavedGame() {
+  const raw = localStorage.getItem(saveKey);
+  if (!raw) return false;
+
+  try {
+    const state = JSON.parse(raw);
+    if (!isGrid(state.solution) || !isGrid(state.puzzle) || !isGrid(state.playerGrid)) {
+      return false;
+    }
+
+    difficulty = difficultySettings[state.difficulty] ? state.difficulty : "easy";
+    solution = state.solution;
+    puzzle = state.puzzle;
+    playerGrid = state.playerGrid;
+    fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
+    selected =
+      state.selected &&
+      Number.isInteger(state.selected.row) &&
+      Number.isInteger(state.selected.col)
+        ? state.selected
+        : { row: 0, col: 0 };
+    mistakes = Number.isInteger(state.mistakes) ? state.mistakes : 0;
+    seconds = Number.isInteger(state.seconds) ? state.seconds : 0;
+    gameComplete = false;
+    return true;
+  } catch {
+    localStorage.removeItem(saveKey);
+    return false;
+  }
+}
+
 function formatTime(totalSeconds) {
   const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
   const secs = String(totalSeconds % 60).padStart(2, "0");
   return `${minutes}:${secs}`;
 }
 
-function startTimer() {
+function startTimer(reset = true) {
   clearInterval(timerId);
-  seconds = 0;
+  if (reset) seconds = 0;
   timerEl.textContent = formatTime(seconds);
   timerId = setInterval(() => {
     seconds += 1;
     timerEl.textContent = formatTime(seconds);
+    saveGame();
   }, 1000);
 }
 
@@ -225,6 +285,7 @@ function renderBoard() {
       cell.addEventListener("click", () => {
         selected = { row, col };
         renderBoard();
+        saveGame();
       });
 
       boardEl.appendChild(cell);
@@ -237,6 +298,12 @@ function setMessage(text, tone = "normal") {
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
 }
 
+function updateDifficultyButtons() {
+  difficultyButtons.forEach((item) => {
+    item.classList.toggle("active", item.dataset.difficulty === difficulty);
+  });
+}
+
 function checkComplete() {
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
@@ -246,6 +313,7 @@ function checkComplete() {
 
   gameComplete = true;
   clearInterval(timerId);
+  localStorage.removeItem(saveKey);
   setMessage(`완성! ${formatTime(seconds)} 만에 해결했어요.`);
   return true;
 }
@@ -270,7 +338,7 @@ function inputNumber(value) {
   }
 
   renderBoard();
-  checkComplete();
+  if (!checkComplete()) saveGame();
 }
 
 function eraseSelected() {
@@ -285,13 +353,13 @@ function eraseSelected() {
   playerGrid[row][col] = 0;
   setMessage("선택한 칸을 비웠어요.");
   renderBoard();
+  saveGame();
 }
 
 function newGame() {
   gameComplete = false;
   mistakes = 0;
   mistakesEl.textContent = mistakes;
-  setMessage(`${difficultySettings[difficulty].label} 난이도 새 게임을 시작했어요.`);
   generateGame();
 
   const firstEmpty = puzzle
@@ -299,8 +367,11 @@ function newGame() {
     .find((cell) => cell.value === 0);
   selected = { row: firstEmpty.rowIndex, col: firstEmpty.colIndex };
 
+  setMessage(`${difficultySettings[difficulty].label} 난이도 새 게임을 시작했어요.`);
+  updateDifficultyButtons();
   renderBoard();
   startTimer();
+  saveGame();
 }
 
 function moveSelection(rowDelta, colDelta) {
@@ -309,12 +380,26 @@ function moveSelection(rowDelta, colDelta) {
     col: Math.max(0, Math.min(size - 1, selected.col + colDelta)),
   };
   renderBoard();
+  saveGame();
+}
+
+function startApp() {
+  if (loadSavedGame()) {
+    mistakesEl.textContent = mistakes;
+    timerEl.textContent = formatTime(seconds);
+    updateDifficultyButtons();
+    renderBoard();
+    startTimer(false);
+    setMessage("저장된 게임을 불러왔어요. 이어서 플레이하세요.");
+    return;
+  }
+
+  newGame();
 }
 
 difficultyButtons.forEach((button) => {
   button.addEventListener("click", () => {
     difficulty = button.dataset.difficulty;
-    difficultyButtons.forEach((item) => item.classList.toggle("active", item === button));
     newGame();
   });
 });
@@ -335,4 +420,4 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowRight") moveSelection(0, 1);
 });
 
-newGame();
+startApp();
