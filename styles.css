@@ -454,10 +454,21 @@ h1 {
   }
 
   .topbar {
-    align-items: start;
+    display: contents;
+  }
+
+  .topbar > div:first-child {
+    order: 0;
+  }
+
+  .topbar .stats {
+    order: 2;
+    margin-top: 4px;
+    padding-bottom: 18px;
   }
 
   .game-layout {
+    order: 1;
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -471,6 +482,7 @@ h1 {
 
   .number-pad {
     grid-template-columns: repeat(9, 1fr);
+    order: 3;
   }
 
   .number-pad button {
@@ -481,16 +493,29 @@ h1 {
 
   .battle-actions {
     grid-template-columns: 1fr 1fr;
+    order: 4;
   }
 
   .battle-actions .danger {
     grid-column: 1 / -1;
   }
+
+  .battle-message {
+    order: 2;
+  }
+
+  .players-panel {
+    order: 5;
+  }
+
+  .chat-panel {
+    order: 6;
+  }
 }
 
 @media (max-width: 520px) {
   .topbar {
-    display: grid;
+    display: contents;
   }
 
   .stats {
