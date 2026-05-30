@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classic Sudoku</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="게임 상태">
+        <div>
+          <p class="eyebrow">Classic Sudoku</p>
+          <h1>스도쿠</h1>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span>시간</span>
+            <strong id="timer">00:00</strong>
+          </div>
+          <div class="stat">
+            <span>실수</span>
+            <strong id="mistakes">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="game-layout">
+        <div class="board-wrap">
+          <div id="board" class="sudoku-board" aria-label="스도쿠 보드"></div>
+        </div>
+
+        <aside class="controls" aria-label="게임 조작">
+          <div class="difficulty" role="group" aria-label="난이도 선택">
+            <button class="difficulty-btn active" data-difficulty="easy">쉬움</button>
+            <button class="difficulty-btn" data-difficulty="medium">보통</button>
+            <button class="difficulty-btn" data-difficulty="hard">어려움</button>
+          </div>
+
+          <div id="message" class="message" role="status" aria-live="polite">
+            빈 칸을 선택하고 숫자를 입력하세요.
+          </div>
+
+          <div class="number-pad" aria-label="숫자 입력">
+            <button data-number="1">1</button>
+            <button data-number="2">2</button>
+            <button data-number="3">3</button>
+            <button data-number="4">4</button>
+            <button data-number="5">5</button>
+            <button data-number="6">6</button>
+            <button data-number="7">7</button>
+            <button data-number="8">8</button>
+            <button data-number="9">9</button>
+          </div>
+
+          <div class="actions">
+            <button id="eraseBtn" class="secondary">지우기</button>
+            <button id="newGameBtn" class="primary">새 게임</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
