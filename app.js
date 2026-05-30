@@ -2,6 +2,7 @@ const boardEl = document.querySelector("#board");
 const timerEl = document.querySelector("#timer");
 const mistakesEl = document.querySelector("#mistakes");
 const messageEl = document.querySelector("#message");
+const progressEl = document.querySelector("#progress");
 const newGameBtn = document.querySelector("#newGameBtn");
 const eraseBtn = document.querySelector("#eraseBtn");
 const difficultyButtons = [...document.querySelectorAll(".difficulty-btn")];
@@ -11,9 +12,13 @@ const size = 9;
 const boxSize = 3;
 const saveKey = "classic-sudoku-game-state-v1";
 const difficultySettings = {
-  easy: { label: "쉬움", clues: 45 },
-  medium: { label: "보통", clues: 36 },
-  hard: { label: "어려움", clues: 30 },
+  easy: { label: "쉬움", clues: 45, limitSeconds: 10 * 60 },
+  medium: { label: "보통", clues: 36, limitSeconds: 30 * 60 },
+  hard: { label: "어려움", clues: 30, limitSeconds: null },
+};
+const unlockRules = {
+  medium: { requiredDifficulty: "easy", requiredWins: 5 },
+  hard: { requiredDifficulty: "medium", requiredWins: 4 },
 };
 
 let solution = [];
@@ -26,6 +31,10 @@ let mistakes = 0;
 let seconds = 0;
 let timerId = null;
 let gameComplete = false;
+let progress = {
+  easyTimedWins: 0,
+  mediumTimedWins: 0,
+};
 
 function shuffle(values) {
   const copy = [...values];
@@ -50,6 +59,18 @@ function isGrid(value) {
     value.length === size &&
     value.every((row) => Array.isArray(row) && row.length === size)
   );
+}
+
+function isDifficultyUnlocked(level) {
+  if (level === "easy") return true;
+  if (level === "medium") return progress.easyTimedWins >= unlockRules.medium.requiredWins;
+  if (level === "hard") return progress.mediumTimedWins >= unlockRules.hard.requiredWins;
+  return false;
+}
+
+function limitText(level) {
+  const limit = difficultySettings[level].limitSeconds;
+  return limit ? `${Math.floor(limit / 60)}분 안에` : "제한 없음";
 }
 
 function isValid(grid, row, col, value) {
@@ -163,11 +184,6 @@ function generateGame() {
 }
 
 function saveGame() {
-  if (gameComplete) {
-    localStorage.removeItem(saveKey);
-    return;
-  }
-
   const state = {
     difficulty,
     solution,
@@ -176,6 +192,8 @@ function saveGame() {
     selected,
     mistakes,
     seconds,
+    gameComplete,
+    progress,
   };
 
   localStorage.setItem(saveKey, JSON.stringify(state));
@@ -191,7 +209,12 @@ function loadSavedGame() {
       return false;
     }
 
+    progress = {
+      easyTimedWins: Math.max(0, Number(state.progress?.easyTimedWins) || 0),
+      mediumTimedWins: Math.max(0, Number(state.progress?.mediumTimedWins) || 0),
+    };
     difficulty = difficultySettings[state.difficulty] ? state.difficulty : "easy";
+    if (!isDifficultyUnlocked(difficulty)) difficulty = "easy";
     solution = state.solution;
     puzzle = state.puzzle;
     playerGrid = state.playerGrid;
@@ -204,7 +227,7 @@ function loadSavedGame() {
         : { row: 0, col: 0 };
     mistakes = Number.isInteger(state.mistakes) ? state.mistakes : 0;
     seconds = Number.isInteger(state.seconds) ? state.seconds : 0;
-    gameComplete = false;
+    gameComplete = Boolean(state.gameComplete);
     return true;
   } catch {
     localStorage.removeItem(saveKey);
@@ -222,6 +245,8 @@ function startTimer(reset = true) {
   clearInterval(timerId);
   if (reset) seconds = 0;
   timerEl.textContent = formatTime(seconds);
+  if (gameComplete) return;
+
   timerId = setInterval(() => {
     seconds += 1;
     timerEl.textContent = formatTime(seconds);
@@ -298,10 +323,81 @@ function setMessage(text, tone = "normal") {
   messageEl.style.borderLeftColor = tone === "warn" ? "var(--warn)" : "var(--accent)";
 }
 
+function renderProgress() {
+  const mediumReady = isDifficultyUnlocked("medium");
+  const hardReady = isDifficultyUnlocked("hard");
+  progressEl.innerHTML = `
+    <div class="progress-row">
+      <span>보통 열기</span>
+      <strong>${Math.min(progress.easyTimedWins, 5)} / 5</strong>
+    </div>
+    <p>쉬움 스도쿠를 10분 안에 5개 완료</p>
+    <div class="progress-row">
+      <span>어려움 열기</span>
+      <strong>${Math.min(progress.mediumTimedWins, 4)} / 4</strong>
+    </div>
+    <p>보통 스도쿠를 30분 안에 4개 완료</p>
+    <div class="unlock-status">${mediumReady ? "보통 도전 가능" : "보통 잠김"} · ${
+      hardReady ? "어려움 도전 가능" : "어려움 잠김"
+    }</div>
+  `;
+}
+
 function updateDifficultyButtons() {
   difficultyButtons.forEach((item) => {
-    item.classList.toggle("active", item.dataset.difficulty === difficulty);
+    const level = item.dataset.difficulty;
+    const unlocked = isDifficultyUnlocked(level);
+    item.classList.toggle("active", level === difficulty);
+    item.classList.toggle("locked", !unlocked);
+    item.disabled = !unlocked;
+    item.textContent = unlocked
+      ? difficultySettings[level].label
+      : `${difficultySettings[level].label} 잠김`;
+    item.setAttribute("aria-disabled", String(!unlocked));
   });
+  renderProgress();
+}
+
+function recordTimedWin() {
+  const limit = difficultySettings[difficulty].limitSeconds;
+  if (!limit || seconds > limit) return false;
+
+  if (difficulty === "easy" && progress.easyTimedWins < 5) {
+    progress.easyTimedWins += 1;
+    return true;
+  }
+
+  if (difficulty === "medium" && progress.mediumTimedWins < 4) {
+    progress.mediumTimedWins += 1;
+    return true;
+  }
+
+  return false;
+}
+
+function completionMessage(wasTimedWin) {
+  const clearText = `완성! ${formatTime(seconds)} 만에 해결했어요.`;
+  if (difficulty === "easy") {
+    if (wasTimedWin && isDifficultyUnlocked("medium")) {
+      return `${clearText} 보통 단계가 열렸어요.`;
+    }
+    if (wasTimedWin) {
+      return `${clearText} 보통 열기까지 ${5 - progress.easyTimedWins}개 남았어요.`;
+    }
+    return `${clearText} 10분을 넘겨서 보통 열기 기록에는 포함되지 않았어요.`;
+  }
+
+  if (difficulty === "medium") {
+    if (wasTimedWin && isDifficultyUnlocked("hard")) {
+      return `${clearText} 어려움 단계가 열렸어요.`;
+    }
+    if (wasTimedWin) {
+      return `${clearText} 어려움 열기까지 ${4 - progress.mediumTimedWins}개 남았어요.`;
+    }
+    return `${clearText} 30분을 넘겨서 어려움 열기 기록에는 포함되지 않았어요.`;
+  }
+
+  return clearText;
 }
 
 function checkComplete() {
@@ -313,8 +409,10 @@ function checkComplete() {
 
   gameComplete = true;
   clearInterval(timerId);
-  localStorage.removeItem(saveKey);
-  setMessage(`완성! ${formatTime(seconds)} 만에 해결했어요.`);
+  const wasTimedWin = recordTimedWin();
+  updateDifficultyButtons();
+  setMessage(completionMessage(wasTimedWin));
+  saveGame();
   return true;
 }
 
@@ -367,7 +465,11 @@ function newGame() {
     .find((cell) => cell.value === 0);
   selected = { row: firstEmpty.rowIndex, col: firstEmpty.colIndex };
 
-  setMessage(`${difficultySettings[difficulty].label} 난이도 새 게임을 시작했어요.`);
+  setMessage(
+    `${difficultySettings[difficulty].label} 난이도 새 게임을 시작했어요. 기록 조건은 ${limitText(
+      difficulty,
+    )} 완료입니다.`,
+  );
   updateDifficultyButtons();
   renderBoard();
   startTimer();
@@ -390,7 +492,9 @@ function startApp() {
     updateDifficultyButtons();
     renderBoard();
     startTimer(false);
-    setMessage("저장된 게임을 불러왔어요. 이어서 플레이하세요.");
+    setMessage(
+      gameComplete ? "완료된 게임을 불러왔어요. 새 게임으로 다음 도전을 시작하세요." : "저장된 게임을 불러왔어요. 이어서 플레이하세요.",
+    );
     return;
   }
 
@@ -399,7 +503,9 @@ function startApp() {
 
 difficultyButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    difficulty = button.dataset.difficulty;
+    const nextDifficulty = button.dataset.difficulty;
+    if (!isDifficultyUnlocked(nextDifficulty)) return;
+    difficulty = nextDifficulty;
     newGame();
   });
 });
