@@ -66,6 +66,7 @@ let timerId = null;
 let unsubscribeRoom = null;
 let isFinished = false;
 let creatingRoom = false;
+let lastChatCount = 0;
 
 localStorage.setItem(playerKey, playerId);
 
@@ -495,6 +496,10 @@ function renderChat() {
     return;
   }
 
+  const shouldScroll =
+    messages.length !== lastChatCount ||
+    chatMessagesEl.scrollTop + chatMessagesEl.clientHeight >= chatMessagesEl.scrollHeight - 24;
+
   chatMessagesEl.innerHTML = messages
     .map((message) => {
       const mine = message.playerId === playerId ? " mine" : "";
@@ -508,7 +513,12 @@ function renderChat() {
       `;
     })
     .join("");
-  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  lastChatCount = messages.length;
+  if (shouldScroll) {
+    requestAnimationFrame(() => {
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    });
+  }
 }
 
 function handleRoomUpdate(snapshot) {
