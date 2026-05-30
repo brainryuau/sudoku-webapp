@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-11" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-13" />
   </head>
   <body>
     <main class="app-shell">
@@ -53,6 +53,20 @@
             <label>
               힌트 횟수
               <input id="hintLimit" min="0" max="9" type="number" value="2" />
+            </label>
+            <label>
+              효과음
+              <select id="soundPreset">
+                <option value="soft">맑은 소리</option>
+                <option value="pop">통통 소리</option>
+                <option value="bell">벨 소리</option>
+                <option value="arcade">게임 소리</option>
+                <option value="drum">둥 소리</option>
+              </select>
+            </label>
+            <label>
+              효과음 크기
+              <input id="soundVolume" min="0" max="100" type="range" value="80" />
             </label>
             <div class="difficulty" role="group" aria-label="대화 모드">
               <button class="difficulty-btn active" data-chat-mode="free">일반대화</button>
@@ -112,6 +126,6 @@
       </div>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-11"></script>
+    <script type="module" src="./battle.js?v=20260531-13"></script>
   </body>
 </html>

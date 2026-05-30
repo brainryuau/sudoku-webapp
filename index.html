@@ -4,17 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Classic Sudoku</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-11" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-13" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="topbar" aria-label="게임 상태">
+      <section class="topbar solo-topbar" aria-label="게임 상태">
         <div>
           <p class="eyebrow">Classic Sudoku</p>
           <h1>스도쿠</h1>
         </div>
+        <div id="progress" class="progress-panel mission-panel" aria-live="polite"></div>
         <div class="stats">
-          <a class="mode-link" href="./battle.html?v=20260531-11">대전모드</a>
+          <a class="mode-link" href="./battle.html?v=20260531-13">대전모드</a>
           <div class="stat">
             <span>시간</span>
             <strong id="timer">00:00</strong>
@@ -38,8 +39,6 @@
             <button class="difficulty-btn" data-difficulty="hard">어려움</button>
           </div>
 
-          <div id="progress" class="progress-panel" aria-live="polite"></div>
-
           <div id="message" class="message" role="status" aria-live="polite">
             빈 칸을 선택하고 숫자를 입력하세요.
           </div>
@@ -58,12 +57,13 @@
 
           <div class="actions">
             <button id="eraseBtn" class="secondary">지우기</button>
+            <button id="hintBtn" class="secondary">힌트</button>
             <button id="newGameBtn" class="primary">새 게임</button>
           </div>
         </aside>
       </section>
     </main>
 
-    <script src="./app.js?v=20260530-8"></script>
+    <script src="./app.js?v=20260531-13"></script>
   </body>
 </html>

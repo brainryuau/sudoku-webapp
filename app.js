@@ -5,6 +5,7 @@ const messageEl = document.querySelector("#message");
 const progressEl = document.querySelector("#progress");
 const newGameBtn = document.querySelector("#newGameBtn");
 const eraseBtn = document.querySelector("#eraseBtn");
+const hintBtn = document.querySelector("#hintBtn");
 const difficultyButtons = [...document.querySelectorAll(".difficulty-btn")];
 const numberButtons = [...document.querySelectorAll("[data-number]")];
 
@@ -31,10 +32,35 @@ let mistakes = 0;
 let seconds = 0;
 let timerId = null;
 let gameComplete = false;
+let completedUnits = new Set();
+let audioContext = null;
 let progress = {
   easyTimedWins: 0,
   mediumTimedWins: 0,
 };
+
+function playTone(kind) {
+  try {
+    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = kind === "correct" ? "sine" : "triangle";
+    oscillator.frequency.setValueAtTime(kind === "correct" ? 720 : 150, now);
+    oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 1120 : 90, now + 0.12);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.18 : 0.2, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.17);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.2);
+  } catch {
+    // Some browsers unlock sound only after a direct tap.
+  }
+}
 
 function shuffle(values) {
   const copy = [...values];
@@ -194,6 +220,7 @@ function saveGame() {
     seconds,
     gameComplete,
     progress,
+    completedUnits: [...completedUnits],
   };
 
   localStorage.setItem(saveKey, JSON.stringify(state));
@@ -228,6 +255,7 @@ function loadSavedGame() {
     mistakes = Number.isInteger(state.mistakes) ? state.mistakes : 0;
     seconds = Number.isInteger(state.seconds) ? state.seconds : 0;
     gameComplete = Boolean(state.gameComplete);
+    completedUnits = new Set(Array.isArray(state.completedUnits) ? state.completedUnits : []);
     return true;
   } catch {
     localStorage.removeItem(saveKey);
@@ -281,6 +309,49 @@ function hasConflict(row, col) {
   }
 
   return false;
+}
+
+function unitCells(type, index) {
+  if (type === "row") return Array.from({ length: size }, (_, col) => ({ row: index, col }));
+  if (type === "col") return Array.from({ length: size }, (_, row) => ({ row, col: index }));
+
+  const startRow = Math.floor(index / boxSize) * boxSize;
+  const startCol = (index % boxSize) * boxSize;
+  return Array.from({ length: size }, (_, offset) => ({
+    row: startRow + Math.floor(offset / boxSize),
+    col: startCol + (offset % boxSize),
+  }));
+}
+
+function isUnitComplete(cells) {
+  return cells.every(({ row, col }) => playerGrid[row][col] === solution[row][col]);
+}
+
+function flashUnit(cells) {
+  requestAnimationFrame(() => {
+    cells.forEach(({ row, col }) => {
+      boardEl
+        .querySelector(`[data-row="${row}"][data-col="${col}"]`)
+        ?.classList.add("complete-pop");
+    });
+  });
+}
+
+function checkUnitEffects() {
+  const justCompleted = [];
+  ["row", "col", "box"].forEach((type) => {
+    for (let index = 0; index < size; index += 1) {
+      const key = `${type}-${index}`;
+      const cells = unitCells(type, index);
+      if (isUnitComplete(cells) && !completedUnits.has(key)) {
+        completedUnits.add(key);
+        justCompleted.push(cells);
+      }
+    }
+  });
+
+  justCompleted.forEach(flashUnit);
+  if (justCompleted.length) playTone("correct");
 }
 
 function renderBoard() {
@@ -431,11 +502,40 @@ function inputNumber(value) {
     mistakes += 1;
     mistakesEl.textContent = mistakes;
     setMessage("그 숫자는 정답이 아니에요. 다른 가능성을 찾아보세요.", "warn");
+    playTone("wrong");
   } else {
     setMessage("좋아요. 계속 이어가세요.");
+    playTone("correct");
   }
 
   renderBoard();
+  if (value === solution[row][col]) checkUnitEffects();
+  if (!checkComplete()) saveGame();
+}
+
+function useHint() {
+  if (gameComplete) return;
+  const candidates = [];
+  for (let row = 0; row < size; row += 1) {
+    for (let col = 0; col < size; col += 1) {
+      if (!fixedCells[row][col] && playerGrid[row][col] !== solution[row][col]) {
+        candidates.push({ row, col });
+      }
+    }
+  }
+  if (!candidates.length) return;
+
+  const target =
+    !fixedCells[selected.row]?.[selected.col] &&
+    playerGrid[selected.row]?.[selected.col] !== solution[selected.row]?.[selected.col]
+      ? selected
+      : candidates[0];
+  playerGrid[target.row][target.col] = solution[target.row][target.col];
+  selected = target;
+  setMessage("힌트로 한 칸을 채웠어요.");
+  playTone("correct");
+  renderBoard();
+  checkUnitEffects();
   if (!checkComplete()) saveGame();
 }
 
@@ -457,6 +557,7 @@ function eraseSelected() {
 function newGame() {
   gameComplete = false;
   mistakes = 0;
+  completedUnits = new Set();
   mistakesEl.textContent = mistakes;
   generateGame();
 
@@ -516,6 +617,7 @@ numberButtons.forEach((button) => {
 
 newGameBtn.addEventListener("click", newGame);
 eraseBtn.addEventListener("click", eraseSelected);
+hintBtn.addEventListener("click", useHint);
 
 document.addEventListener("keydown", (event) => {
   if (event.key >= "1" && event.key <= "9") inputNumber(Number(event.key));

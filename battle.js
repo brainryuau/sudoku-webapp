@@ -38,6 +38,8 @@ const playerNameInput = document.querySelector("#playerName");
 const joinCodeInput = document.querySelector("#joinCode");
 const eraseLimitInput = document.querySelector("#eraseLimit");
 const hintLimitInput = document.querySelector("#hintLimit");
+const soundPresetInput = document.querySelector("#soundPreset");
+const soundVolumeInput = document.querySelector("#soundVolume");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const hintBtn = document.querySelector("#hintBtn");
@@ -80,6 +82,9 @@ let hintLimit = 2;
 let hintUsed = 0;
 let chatMode = "free";
 let chatCredits = 0;
+let soundPreset = "soft";
+let soundVolume = 80;
+let completedUnits = new Set();
 let audioContext = null;
 
 localStorage.setItem(playerKey, playerId);
@@ -98,18 +103,35 @@ function setRoomCodeText(value) {
   if (mobileRoomCodeEl) mobileRoomCodeEl.textContent = value;
 }
 
+const soundPresets = {
+  soft: { correct: [660, 990], wrong: [150, 90], type: "sine" },
+  pop: { correct: [520, 780], wrong: [170, 110], type: "square" },
+  bell: { correct: [880, 1320], wrong: [220, 140], type: "sine" },
+  arcade: { correct: [740, 1180], wrong: [180, 80], type: "sawtooth" },
+  drum: { correct: [300, 520], wrong: [110, 70], type: "triangle" },
+};
+
+function getSoundVolume() {
+  const value = Number(soundVolumeInput?.value);
+  if (!Number.isFinite(value)) return 0.8;
+  return Math.max(0, Math.min(1, value / 100));
+}
+
 function playTone(kind) {
   try {
     audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const now = audioContext.currentTime;
+    const preset = soundPresets[soundPreset] || soundPresets.soft;
+    const [start, end] = kind === "correct" ? preset.correct : preset.wrong;
+    const volume = getSoundVolume();
 
-    oscillator.type = kind === "correct" ? "sine" : "triangle";
-    oscillator.frequency.setValueAtTime(kind === "correct" ? 660 : 150, now);
-    oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 990 : 90, now + 0.12);
+    oscillator.type = preset.type;
+    oscillator.frequency.setValueAtTime(start, now);
+    oscillator.frequency.exponentialRampToValueAtTime(end, now + 0.12);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.2 : 0.24, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime((kind === "correct" ? 0.24 : 0.28) * volume, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
 
     oscillator.connect(gain);
@@ -349,6 +371,10 @@ function getHintLimit() {
   return Math.max(0, Math.min(9, Math.floor(value)));
 }
 
+function getSoundPreset() {
+  return soundPresets[soundPresetInput?.value] ? soundPresetInput.value : "soft";
+}
+
 function eraseRemaining() {
   return Math.max(0, eraseLimit - eraseUsed);
 }
@@ -399,6 +425,9 @@ function saveSession() {
       hintUsed,
       chatMode,
       chatCredits,
+      soundPreset,
+      soundVolume,
+      completedUnits: [...completedUnits],
     }),
   );
 }
@@ -428,6 +457,9 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   hintLimit = getHintLimit();
   hintUsed = 0;
   chatCredits = 0;
+  soundPreset = getSoundPreset();
+  soundVolume = Math.round(getSoundVolume() * 100);
+  completedUnits = new Set();
   clearSession();
   boardEl.innerHTML = "";
   playersPanel.innerHTML = "";
@@ -476,6 +508,11 @@ function loadSession() {
     hintUsed = Number.isInteger(saved.hintUsed) ? saved.hintUsed : 0;
     chatMode = saved.chatMode || "free";
     chatCredits = Number.isInteger(saved.chatCredits) ? saved.chatCredits : 0;
+    soundPreset = soundPresets[saved.soundPreset] ? saved.soundPreset : "soft";
+    soundVolume = Number.isInteger(saved.soundVolume) ? saved.soundVolume : 80;
+    completedUnits = new Set(Array.isArray(saved.completedUnits) ? saved.completedUnits : []);
+    if (soundPresetInput) soundPresetInput.value = soundPreset;
+    if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
     playerNameInput.value = playerName;
     return true;
   } catch {
@@ -511,6 +548,48 @@ function correctCount() {
 
 function isComplete() {
   return correctCount() === size * size;
+}
+
+function unitCells(type, index) {
+  if (type === "row") return Array.from({ length: size }, (_, col) => ({ row: index, col }));
+  if (type === "col") return Array.from({ length: size }, (_, row) => ({ row, col: index }));
+
+  const startRow = Math.floor(index / boxSize) * boxSize;
+  const startCol = (index % boxSize) * boxSize;
+  return Array.from({ length: size }, (_, offset) => ({
+    row: startRow + Math.floor(offset / boxSize),
+    col: startCol + (offset % boxSize),
+  }));
+}
+
+function isUnitComplete(cells) {
+  return cells.every(({ row, col }) => playerGrid[row][col] === solution[row][col]);
+}
+
+function flashUnit(cells) {
+  requestAnimationFrame(() => {
+    cells.forEach(({ row, col }) => {
+      boardEl
+        .querySelector(`[data-row="${row}"][data-col="${col}"]`)
+        ?.classList.add("complete-pop");
+    });
+  });
+}
+
+function checkUnitEffects() {
+  const justCompleted = [];
+  ["row", "col", "box"].forEach((type) => {
+    for (let index = 0; index < size; index += 1) {
+      const key = `${type}-${index}`;
+      const cells = unitCells(type, index);
+      if (isUnitComplete(cells) && !completedUnits.has(key)) {
+        completedUnits.add(key);
+        justCompleted.push(cells);
+      }
+    }
+  });
+
+  justCompleted.forEach(flashUnit);
 }
 
 async function syncPlayer(extra = {}) {
@@ -566,6 +645,8 @@ function renderBoard() {
       cell.type = "button";
       cell.textContent = value || "";
       cell.setAttribute("aria-label", `${row + 1}행 ${col + 1}열`);
+      cell.dataset.row = row;
+      cell.dataset.col = col;
 
       if (fixedCells[row][col]) cell.classList.add("fixed");
       if (row === selected.row && col === selected.col) cell.classList.add("selected");
@@ -677,6 +758,10 @@ function handleRoomUpdate(snapshot) {
   eraseLimit = Number.isInteger(room.eraseLimit) ? room.eraseLimit : eraseLimit;
   hintLimit = Number.isInteger(room.hintLimit) ? room.hintLimit : hintLimit;
   chatMode = room.chatMode || chatMode;
+  soundPreset = soundPresets[room.soundPreset] ? room.soundPreset : soundPreset;
+  soundVolume = Number.isInteger(room.soundVolume) ? room.soundVolume : soundVolume;
+  if (soundPresetInput) soundPresetInput.value = soundPreset;
+  if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
   solution = room.solution;
   puzzle = room.puzzle;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
@@ -713,6 +798,9 @@ async function createRoom() {
   hintLimit = getHintLimit();
   hintUsed = 0;
   chatCredits = 0;
+  completedUnits = new Set();
+  soundPreset = getSoundPreset();
+  soundVolume = Math.round(getSoundVolume() * 100);
   roomCode = makeRoomCode();
   setRoomCodeText(roomCode);
   setMessage(`방 코드 ${roomCode} 생성 완료. 퍼즐을 준비하는 중입니다...`);
@@ -734,6 +822,8 @@ async function createRoom() {
     eraseLimit,
     hintLimit,
     chatMode,
+    soundPreset,
+    soundVolume,
     puzzle,
     solution,
     createdAt: serverTimestamp(),
@@ -789,7 +879,12 @@ async function joinRoom() {
   hintLimit = Number.isInteger(nextRoom.hintLimit) ? nextRoom.hintLimit : 2;
   hintUsed = 0;
   chatMode = nextRoom.chatMode || "free";
+  soundPreset = soundPresets[nextRoom.soundPreset] ? nextRoom.soundPreset : "soft";
+  soundVolume = Number.isInteger(nextRoom.soundVolume) ? nextRoom.soundVolume : 80;
+  if (soundPresetInput) soundPresetInput.value = soundPreset;
+  if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
   chatCredits = 0;
+  completedUnits = new Set();
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
@@ -833,6 +928,7 @@ async function inputNumber(value) {
   }
   playTone(correct ? "correct" : "wrong");
   renderBoard();
+  if (correct) checkUnitEffects();
   await syncPlayer({ chatCredits });
 }
 
@@ -865,6 +961,7 @@ async function useHint() {
   updateHintButton();
   playTone("correct");
   renderBoard();
+  checkUnitEffects();
   await syncPlayer({ hintUsed, chatCredits });
 }
 
@@ -987,6 +1084,17 @@ chatModeButtons.forEach((button) => {
     updateChatModeButtons();
     updateChatInputState();
   });
+});
+
+soundPresetInput?.addEventListener("change", () => {
+  soundPreset = getSoundPreset();
+  playTone("correct");
+  saveSession();
+});
+
+soundVolumeInput?.addEventListener("input", () => {
+  soundVolume = Math.round(getSoundVolume() * 100);
+  saveSession();
 });
 
 numberButtons.forEach((button) => {
