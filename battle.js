@@ -663,8 +663,7 @@ async function copyCode() {
   setMessage("방 코드를 복사했어요.");
 }
 
-async function sendChat(event) {
-  event.preventDefault();
+async function sendChat() {
   if (!roomCode) {
     setMessage("방에 들어간 뒤 채팅할 수 있어요.", "warn");
     return;
@@ -674,12 +673,18 @@ async function sendChat(event) {
   if (!text) return;
 
   chatInput.value = "";
-  await set(push(ref(db, `rooms/${roomCode}/chat`)), {
-    playerId,
-    name: playerName,
-    text,
-    createdAt: Date.now(),
-  });
+  sendChatBtn.disabled = true;
+  try {
+    await set(push(ref(db, `rooms/${roomCode}/chat`)), {
+      playerId,
+      name: playerName,
+      text,
+      createdAt: Date.now(),
+    });
+  } finally {
+    sendChatBtn.disabled = false;
+    chatInput.focus();
+  }
 }
 
 function updateDifficultyButtons() {
@@ -727,7 +732,10 @@ createRoomBtn.addEventListener("click", () => runAction(createRoom, "방을 만�
 joinRoomBtn.addEventListener("click", () => runAction(joinRoom, "방에 참가하는 중입니다..."));
 copyCodeBtn.addEventListener("click", () => runAction(copyCode));
 eraseBtn.addEventListener("click", () => runAction(eraseSelected));
-chatForm.addEventListener("submit", (event) => runAction(() => sendChat(event)));
+chatForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  runAction(sendChat);
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key >= "1" && event.key <= "9") runAction(() => inputNumber(Number(event.key)));
