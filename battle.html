@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-16" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-17" />
   </head>
   <body>
     <main class="app-shell">
@@ -43,6 +43,10 @@
             <label>
               방 코드
               <input id="joinCode" maxlength="6" placeholder="예: A7K2Q9" />
+            </label>
+            <label>
+              만들 방 코드
+              <input id="customRoomCode" maxlength="12" placeholder="예: FRIEND1" />
             </label>
             <label>
               지우기 횟수
@@ -106,6 +110,7 @@
           <div class="actions battle-actions">
             <button id="battleEraseBtn" class="secondary">지우기</button>
             <button id="hintBtn" class="primary">힌트</button>
+            <button id="restartRoomBtn" class="secondary">새 게임</button>
           </div>
 
           <div id="battleMessage" class="message battle-message" role="status" aria-live="polite">
@@ -125,6 +130,6 @@
       <button id="leaveRoomBtn" class="secondary danger leave-action">방 나가기</button>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-16"></script>
+    <script type="module" src="./battle.js?v=20260531-17"></script>
   </body>
 </html>

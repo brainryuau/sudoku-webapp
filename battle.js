@@ -36,6 +36,7 @@ const sendChatBtn = document.querySelector("#sendChatBtn");
 const setupPanel = document.querySelector("#setupPanel");
 const playerNameInput = document.querySelector("#playerName");
 const joinCodeInput = document.querySelector("#joinCode");
+const customRoomCodeInput = document.querySelector("#customRoomCode");
 const eraseLimitInput = document.querySelector("#eraseLimit");
 const hintLimitInput = document.querySelector("#hintLimit");
 const soundPresetInput = document.querySelector("#soundPreset");
@@ -45,6 +46,7 @@ const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const hintBtn = document.querySelector("#hintBtn");
 const eraseBtn = document.querySelector("#battleEraseBtn");
 const leaveRoomBtn = document.querySelector("#leaveRoomBtn");
+const restartRoomBtn = document.querySelector("#restartRoomBtn");
 const difficultyButtons = [...document.querySelectorAll("[data-battle-difficulty]")];
 const chatModeButtons = [...document.querySelectorAll("[data-chat-mode]")];
 const numberButtons = [...document.querySelectorAll("[data-battle-number]")];
@@ -85,6 +87,7 @@ let chatCredits = 0;
 let soundPreset = "soft";
 let soundVolume = 80;
 let completedUnits = new Set();
+let roundId = "";
 let audioContext = null;
 
 localStorage.setItem(playerKey, playerId);
@@ -355,6 +358,14 @@ function makeRoomCode() {
   return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
+function cleanRoomCode(value) {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9가-힣_-]/g, "")
+    .slice(0, 12);
+}
+
 function getName() {
   return playerNameInput.value.trim() || "플레이어";
 }
@@ -406,6 +417,7 @@ function setPlayControlsDisabled(disabled) {
   });
   eraseBtn.disabled = disabled || eraseRemaining() <= 0;
   hintBtn.disabled = disabled || hintRemaining() <= 0;
+  restartRoomBtn.disabled = !roomCode || !room || room.ownerId !== playerId;
 }
 
 function saveSession() {
@@ -428,6 +440,7 @@ function saveSession() {
       soundPreset,
       soundVolume,
       completedUnits: [...completedUnits],
+      roundId,
     }),
   );
 }
@@ -460,6 +473,7 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   soundPreset = getSoundPreset();
   soundVolume = Math.round(getSoundVolume() * 100);
   completedUnits = new Set();
+  roundId = "";
   clearSession();
   boardEl.innerHTML = "";
   playersPanel.innerHTML = "";
@@ -513,6 +527,7 @@ function loadSession() {
     completedUnits = new Set(Array.isArray(saved.completedUnits) ? saved.completedUnits : []);
     if (soundPresetInput) soundPresetInput.value = soundPreset;
     if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
+    roundId = saved.roundId || "";
     playerNameInput.value = playerName;
     return true;
   } catch {
@@ -738,6 +753,7 @@ function renderChat() {
   if (shouldScroll) {
     requestAnimationFrame(() => {
       chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      mobileChatPreviewEl.scrollTop = mobileChatPreviewEl.scrollHeight;
     });
   }
 }
@@ -765,6 +781,26 @@ function handleRoomUpdate(snapshot) {
   solution = room.solution;
   puzzle = room.puzzle;
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
+  if (room.roundId && room.roundId !== roundId) {
+    roundId = room.roundId;
+    playerGrid = cloneGrid(puzzle);
+    selected = { row: 0, col: 0 };
+    seconds = 0;
+    eraseUsed = 0;
+    hintUsed = 0;
+    chatCredits = 0;
+    completedUnits = new Set();
+    startTimer(false);
+    update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+      progress: correctCount(),
+      seconds: 0,
+      eraseUsed: 0,
+      hintUsed: 0,
+      chatCredits: 0,
+      done: false,
+      updatedAt: serverTimestamp(),
+    });
+  }
   if (!playerGrid.length || playerGrid.length !== size) playerGrid = cloneGrid(puzzle);
   renderBoard();
   renderPlayers();
@@ -783,6 +819,7 @@ function handleRoomUpdate(snapshot) {
     updateHintButton();
     updateChatInputState();
   }
+  restartRoomBtn.disabled = room.ownerId !== playerId;
 }
 
 function watchRoom() {
@@ -801,12 +838,22 @@ async function createRoom() {
   completedUnits = new Set();
   soundPreset = getSoundPreset();
   soundVolume = Math.round(getSoundVolume() * 100);
-  roomCode = makeRoomCode();
+  roomCode = cleanRoomCode(customRoomCodeInput?.value || "") || makeRoomCode();
   setRoomCodeText(roomCode);
   setMessage(`방 코드 ${roomCode} 생성 완료. 퍼즐을 준비하는 중입니다...`);
   await new Promise((resolve) => setTimeout(resolve, 30));
 
+  const existing = await get(ref(db, `rooms/${roomCode}`));
+  if (existing.exists()) {
+    creatingRoom = false;
+    roomCode = "";
+    setRoomCodeText("----");
+    setMessage("이미 사용 중인 방 코드예요. 다른 이름으로 만들어주세요.", "warn");
+    return;
+  }
+
   generateGame(difficulty);
+  roundId = crypto.randomUUID();
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
   isFinished = false;
@@ -824,6 +871,7 @@ async function createRoom() {
     chatMode,
     soundPreset,
     soundVolume,
+    roundId,
     puzzle,
     solution,
     createdAt: serverTimestamp(),
@@ -885,6 +933,7 @@ async function joinRoom() {
   if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
   chatCredits = 0;
   completedUnits = new Set();
+  roundId = nextRoom.roundId || "";
   fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
@@ -910,6 +959,67 @@ async function joinRoom() {
   updateHintButton();
   updateChatInputState();
   setMessage("방에 참가했어요. 같은 퍼즐로 대전을 시작합니다.");
+}
+
+async function restartRoom() {
+  if (!roomCode || !room) return;
+  if (room.ownerId !== playerId) {
+    setMessage("방을 만든 사람만 새 게임을 시작할 수 있어요.", "warn");
+    return;
+  }
+
+  generateGame(difficulty);
+  roundId = crypto.randomUUID();
+  playerGrid = cloneGrid(puzzle);
+  fixedCells = puzzle.map((row) => row.map((value) => value !== 0));
+  selected = puzzle
+    .flatMap((row, rowIndex) => row.map((value, colIndex) => ({ value, rowIndex, colIndex })))
+    .find((cell) => cell.value === 0) || { rowIndex: 0, colIndex: 0 };
+  selected = { row: selected.rowIndex, col: selected.colIndex };
+  seconds = 0;
+  isFinished = false;
+  eraseUsed = 0;
+  hintUsed = 0;
+  chatCredits = 0;
+  completedUnits = new Set();
+  const startProgress = puzzle.flat().filter(Boolean).length;
+
+  const players = Object.fromEntries(
+    Object.entries(room.players || {}).map(([id, player]) => [
+      id,
+      {
+        ...player,
+        progress: startProgress,
+        seconds: 0,
+        eraseUsed: 0,
+        hintUsed: 0,
+        chatCredits: 0,
+        done: false,
+        finishedAt: null,
+        updatedAt: serverTimestamp(),
+      },
+    ]),
+  );
+
+  await update(ref(db, `rooms/${roomCode}`), {
+    status: "playing",
+    winnerId: null,
+    finishedAt: null,
+    difficulty,
+    puzzle,
+    solution,
+    roundId,
+    players,
+    restartedAt: serverTimestamp(),
+  });
+
+  startTimer(true);
+  renderBoard();
+  updateEraseButton();
+  updateHintButton();
+  updateChatInputState();
+  saveSession();
+  setMessage("같은 방에서 새 게임을 시작했어요.");
 }
 
 async function inputNumber(value) {
@@ -1046,8 +1156,9 @@ function boot() {
     setMessage("대전모드를 쓰려면 battle.js에 Firebase 설정값을 먼저 넣어야 합니다.", "warn");
     createRoomBtn.disabled = true;
     joinRoomBtn.disabled = true;
-    hintBtn.disabled = true;
-    eraseBtn.disabled = true;
+  hintBtn.disabled = true;
+  eraseBtn.disabled = true;
+  restartRoomBtn.disabled = true;
     chatInput.disabled = true;
     sendChatBtn.disabled = true;
     playersPanel.innerHTML = "<p>GitHub Pages만으로는 실시간 대전이 되지 않아 Firebase 연결이 필요합니다.</p>";
@@ -1105,6 +1216,7 @@ createRoomBtn.addEventListener("click", () => runAction(createRoom, "방을 만�
 joinRoomBtn.addEventListener("click", () => runAction(joinRoom, "방에 참가하는 중입니다..."));
 hintBtn.addEventListener("click", () => runAction(useHint));
 eraseBtn.addEventListener("click", () => runAction(eraseSelected));
+restartRoomBtn.addEventListener("click", () => runAction(restartRoom, "새 게임을 준비하는 중입니다..."));
 leaveRoomBtn.addEventListener("click", () => runAction(leaveRoom));
 sendChatBtn.addEventListener("click", () => runAction(sendChat));
 chatInput.addEventListener("keydown", (event) => {
