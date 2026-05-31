@@ -65,6 +65,9 @@ const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
 const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
 const chatColorInput = document.querySelector("#chatColor");
 const chatColorLabel = document.querySelector("#chatColorLabel");
+const chatTextColorInput = document.querySelector("#chatTextColor");
+const chatTextColorLabel = document.querySelector("#chatTextColorLabel");
+const chatFontInput = document.querySelector("#chatFont");
 
 const size = 9;
 const boxSize = 3;
@@ -111,6 +114,8 @@ let appSettings = {
   effectVolume: 50,
   soundPreset: "soft",
   chatColor: "#6f2cff",
+  chatTextColor: "#ffffff",
+  chatFont: "system",
 };
 
 localStorage.setItem(playerKey, playerId);
@@ -129,10 +134,15 @@ function loadSettings() {
   settingsSoundPresetInput.value = appSettings.soundPreset;
   soundPresetInput.value = appSettings.soundPreset;
   appSettings.chatColor = normalizeHexColor(appSettings.chatColor);
+  appSettings.chatTextColor = normalizeHexColor(appSettings.chatTextColor, "#ffffff");
+  appSettings.chatFont = normalizeChatFont(appSettings.chatFont);
   chatColorInput.value = appSettings.chatColor;
+  chatTextColorInput.value = appSettings.chatTextColor;
+  chatFontInput.value = appSettings.chatFont;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
   chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
+  chatTextColorLabel.textContent = appSettings.chatTextColor.toUpperCase();
   if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
 }
 
@@ -143,34 +153,47 @@ function saveSettings() {
     effectVolume: Number(effectVolume.value),
     soundPreset: soundPresets[settingsSoundPresetInput.value] ? settingsSoundPresetInput.value : "soft",
     chatColor: normalizeHexColor(chatColorInput.value),
+    chatTextColor: normalizeHexColor(chatTextColorInput.value, "#ffffff"),
+    chatFont: normalizeChatFont(chatFontInput.value),
   };
   soundPreset = appSettings.soundPreset;
   soundPresetInput.value = appSettings.soundPreset;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
   chatColorInput.value = appSettings.chatColor;
+  chatTextColorInput.value = appSettings.chatTextColor;
+  chatFontInput.value = appSettings.chatFont;
   chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
+  chatTextColorLabel.textContent = appSettings.chatTextColor.toUpperCase();
   if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
   localStorage.setItem(settingsKey, JSON.stringify(appSettings));
 }
 
-function normalizeHexColor(value) {
+function normalizeHexColor(value, fallback = "#6f2cff") {
   const text = String(value || "").trim();
-  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : "#6f2cff";
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : fallback;
 }
 
-function textColorFor(background) {
-  const hex = normalizeHexColor(background).slice(1);
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.62 ? "#172033" : "#ffffff";
+function normalizeChatFont(value) {
+  return ["system", "rounded", "serif", "mono", "bold"].includes(value) ? value : "system";
 }
 
-function chatBubbleStyle(color) {
-  const background = normalizeHexColor(color);
-  return `style="background:${background};color:${textColorFor(background)}"`;
+function fontFamilyFor(value) {
+  const fonts = {
+    system: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    rounded: "'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    bold: "Impact, 'Arial Black', system-ui, sans-serif",
+  };
+  return fonts[normalizeChatFont(value)];
+}
+
+function chatBubbleStyle(message) {
+  const background = normalizeHexColor(message.color);
+  const textColor = normalizeHexColor(message.textColor || "#ffffff", "#ffffff");
+  const fontFamily = fontFamilyFor(message.font);
+  return `style="background:${background};color:${textColor};font-family:${fontFamily}"`;
 }
 
 function openSettings() {
@@ -894,7 +917,7 @@ function renderChat() {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
       const text = escapeHtml(message.text || "");
-      const style = chatBubbleStyle(message.color);
+      const style = chatBubbleStyle(message);
       return `
         <div class="chat-message${mine}" ${style}>
           <strong>${name}</strong>
@@ -909,7 +932,7 @@ function renderChat() {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
       const text = escapeHtml(message.text || "");
-      const style = chatBubbleStyle(message.color);
+      const style = chatBubbleStyle(message);
       return `
         <div class="chat-message${mine}" ${style}>
           <strong>${name}</strong>
@@ -1303,6 +1326,8 @@ async function sendChat() {
       name: playerName,
       text,
       color: normalizeHexColor(appSettings.chatColor),
+      textColor: normalizeHexColor(appSettings.chatTextColor, "#ffffff"),
+      font: normalizeChatFont(appSettings.chatFont),
       createdAt: Date.now(),
     });
     if (chatMode === "earned") {
@@ -1344,7 +1369,7 @@ function updateRoomSummary() {
 
 function boot() {
   if (!hasFirebaseConfig()) {
-    setMessage("대전모드를 쓰려면 battle.js에 Firebase 설정값을 먼저 넣어야 합니다.", "warn");
+    setMessage("뽀요대전을 쓰려면 battle.js에 Firebase 설정값을 먼저 넣어야 합니다.", "warn");
     createRoomBtn.disabled = true;
     joinRoomBtn.disabled = true;
   hintBtn.disabled = true;
@@ -1433,7 +1458,7 @@ document.addEventListener("webkitfullscreenchange", () => {
 settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) closeSettings();
 });
-[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput].forEach((control) => {
+[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput, chatTextColorInput, chatFontInput].forEach((control) => {
   control.addEventListener("input", saveSettings);
   control.addEventListener("change", saveSettings);
 });

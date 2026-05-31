@@ -25,6 +25,9 @@ const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
 const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
 const chatColorInput = document.querySelector("#chatColor");
 const chatColorLabel = document.querySelector("#chatColorLabel");
+const chatTextColorInput = document.querySelector("#chatTextColor");
+const chatTextColorLabel = document.querySelector("#chatTextColorLabel");
+const chatFontInput = document.querySelector("#chatFont");
 
 const size = 9;
 const boxSize = 3;
@@ -64,6 +67,8 @@ let appSettings = {
   effectVolume: 50,
   soundPreset: "soft",
   chatColor: "#6f2cff",
+  chatTextColor: "#ffffff",
+  chatFont: "system",
 };
 
 const soundPresets = {
@@ -74,9 +79,13 @@ const soundPresets = {
   drum: { correct: [300, 520], wrong: [110, 70], type: "triangle" },
 };
 
-function normalizeHexColor(value) {
+function normalizeHexColor(value, fallback = "#6f2cff") {
   const text = String(value || "").trim();
-  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : "#6f2cff";
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : fallback;
+}
+
+function normalizeChatFont(value) {
+  return ["system", "rounded", "serif", "mono", "bold"].includes(value) ? value : "system";
 }
 
 function loadSettings() {
@@ -92,10 +101,15 @@ function loadSettings() {
   appSettings.soundPreset = soundPresets[appSettings.soundPreset] ? appSettings.soundPreset : "soft";
   settingsSoundPresetInput.value = appSettings.soundPreset;
   appSettings.chatColor = normalizeHexColor(appSettings.chatColor);
+  appSettings.chatTextColor = normalizeHexColor(appSettings.chatTextColor, "#ffffff");
+  appSettings.chatFont = normalizeChatFont(appSettings.chatFont);
   chatColorInput.value = appSettings.chatColor;
+  chatTextColorInput.value = appSettings.chatTextColor;
+  chatFontInput.value = appSettings.chatFont;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
   chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
+  chatTextColorLabel.textContent = appSettings.chatTextColor.toUpperCase();
 }
 
 function saveSettings() {
@@ -105,11 +119,16 @@ function saveSettings() {
     effectVolume: Number(effectVolume.value),
     soundPreset: soundPresets[settingsSoundPresetInput.value] ? settingsSoundPresetInput.value : "soft",
     chatColor: normalizeHexColor(chatColorInput.value),
+    chatTextColor: normalizeHexColor(chatTextColorInput.value, "#ffffff"),
+    chatFont: normalizeChatFont(chatFontInput.value),
   };
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
   chatColorInput.value = appSettings.chatColor;
+  chatTextColorInput.value = appSettings.chatTextColor;
+  chatFontInput.value = appSettings.chatFont;
   chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
+  chatTextColorLabel.textContent = appSettings.chatTextColor.toUpperCase();
   localStorage.setItem(settingsKey, JSON.stringify(appSettings));
 }
 
@@ -795,7 +814,7 @@ document.addEventListener("webkitfullscreenchange", () => {
 settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) closeSettings();
 });
-[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput].forEach((control) => {
+[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput, chatTextColorInput, chatFontInput].forEach((control) => {
   control.addEventListener("input", saveSettings);
   control.addEventListener("change", saveSettings);
 });

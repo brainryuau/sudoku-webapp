@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#fbf7ff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="스도쿠" />
-    <title>Sudoku Battle</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=20260531-24" />
-    <link rel="stylesheet" href="./styles.css?v=20260531-24" />
+    <meta name="apple-mobile-web-app-title" content="뽀요 스도쿠" />
+    <title>뽀요대전</title>
+    <link rel="manifest" href="./manifest.webmanifest?v=20260531-26" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-26" />
   </head>
   <body>
     <button id="settingsBtn" class="settings-fab" type="button" aria-label="개인 설정">⚙</button>
@@ -18,7 +18,7 @@
       <section class="battle-setup-card" id="setupPanel">
         <div class="setup-header">
           <a class="back-link" href="./index.html" aria-label="처음으로">←</a>
-          <h1><span>♧</span> 대전모드</h1>
+          <h1><span>♧</span> 뽀요대전</h1>
         </div>
 
         <div class="battle-hero">
@@ -80,7 +80,7 @@
         </section>
 
         <section class="battle-guide">
-          <strong>💡 대전모드 안내</strong>
+          <strong>💡 뽀요대전 안내</strong>
           <p>동일한 스도쿠 퍼즐을 함께 풉니다</p>
           <p>정답을 맞힐 때마다 점수가 올라갑니다</p>
           <p>먼저 완성하거나 높은 점수를 얻으세요</p>
@@ -109,7 +109,7 @@
       <section class="battle-game-card">
         <section class="topbar battle-topbar" aria-label="대전 상태">
           <a class="back-link" href="./battle.html" aria-label="대전 처음으로">←</a>
-          <h2 class="screen-title"><span>♧</span> 대전모드</h2>
+          <h2 class="screen-title"><span>♧</span> 뽀요대전</h2>
           <button id="battleFocusBtn" class="focus-button" type="button">집중</button>
           <div class="timer-chip" id="battleTimer">00:00</div>
           <div class="visually-hidden" id="mobileBattleTimer">00:00</div>
@@ -204,13 +204,27 @@
           </select>
         </label>
         <label class="setting-control color-setting">
-          <span>메시지 색깔 <strong id="chatColorLabel">보라</strong></span>
+          <span>메시지창 색상 <strong id="chatColorLabel">#6F2CFF</strong></span>
           <input id="chatColor" type="color" value="#6f2cff" />
+        </label>
+        <label class="setting-control color-setting">
+          <span>메시지 글씨색 <strong id="chatTextColorLabel">#FFFFFF</strong></span>
+          <input id="chatTextColor" type="color" value="#ffffff" />
+        </label>
+        <label class="setting-control">
+          <span>메시지 글씨체</span>
+          <select id="chatFont">
+            <option value="system">기본 글씨체</option>
+            <option value="rounded">둥근 글씨체</option>
+            <option value="serif">차분한 글씨체</option>
+            <option value="mono">게임 글씨체</option>
+            <option value="bold">굵은 글씨체</option>
+          </select>
         </label>
         <div class="settings-tip">💡 설정은 자동으로 저장되며 다음 접속 시에도 유지됩니다.</div>
       </section>
     </div>
 
-    <script type="module" src="./battle.js?v=20260531-24"></script>
+    <script type="module" src="./battle.js?v=20260531-26"></script>
   </body>
 </html>

@@ -739,6 +739,7 @@ body.is-battle-playing .battle-game-card {
   font-size: 0.86rem;
   font-weight: 720;
   line-height: 1.35;
+  font-family: inherit;
 }
 
 .chat-form {
@@ -885,6 +886,8 @@ body.is-battle-playing .battle-game-card {
 
 .settings-modal {
   width: min(448px, 100%);
+  max-height: min(760px, calc(100dvh - 36px));
+  overflow-y: auto;
   display: grid;
   gap: 22px;
   padding: 24px;
