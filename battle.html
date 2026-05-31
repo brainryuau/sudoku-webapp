@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-17" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-20" />
   </head>
   <body>
     <main class="app-shell">
@@ -85,7 +85,13 @@
             </div>
           </div>
 
-          <div id="playersPanel" class="progress-panel players-panel"></div>
+          <div class="battle-info-row">
+            <div id="playersPanel" class="progress-panel players-panel"></div>
+            <div class="stat mobile-room-stat">
+              <span>방 코드</span>
+              <strong id="mobileRoomCode">----</strong>
+            </div>
+          </div>
 
           <section class="chat-panel" aria-label="대전 채팅">
             <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
@@ -110,7 +116,6 @@
           <div class="actions battle-actions">
             <button id="battleEraseBtn" class="secondary">지우기</button>
             <button id="hintBtn" class="primary">힌트</button>
-            <button id="restartRoomBtn" class="secondary">새 게임</button>
           </div>
 
           <div id="battleMessage" class="message battle-message" role="status" aria-live="polite">
@@ -121,15 +126,12 @@
 
       <div class="mobile-bottom-stats" aria-label="방 정보">
         <a class="mode-link" href="./index.html">혼자하기</a>
-        <div class="stat">
-          <span>방 코드</span>
-          <strong id="mobileRoomCode">----</strong>
-        </div>
+        <button id="restartRoomBtn" class="secondary">새 게임</button>
       </div>
 
       <button id="leaveRoomBtn" class="secondary danger leave-action">방 나가기</button>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-17"></script>
+    <script type="module" src="./battle.js?v=20260531-20"></script>
   </body>
 </html>

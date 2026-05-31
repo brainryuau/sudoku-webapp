@@ -647,7 +647,23 @@ function isRelated(row, col) {
 
 function renderBoard() {
   boardEl.innerHTML = "";
+  boardEl.classList.remove("loss-board");
+  boardEl.removeAttribute("data-result");
   if (!puzzle.length) return;
+
+  if (room?.status === "finished" && room?.winnerId && room.winnerId !== playerId) {
+    boardEl.classList.add("loss-board");
+    boardEl.dataset.result = "패배";
+    for (let index = 0; index < size * size; index += 1) {
+      const cell = document.createElement("button");
+      cell.className = "cell";
+      cell.type = "button";
+      cell.disabled = true;
+      cell.setAttribute("aria-label", "패배 후 빈칸");
+      boardEl.appendChild(cell);
+    }
+    return;
+  }
 
   const selectedValue = playerGrid[selected.row]?.[selected.col];
 

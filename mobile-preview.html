@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudoku Mobile Preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #17202a;
+        background: #eef1f5;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.92);
+        border-bottom: 1px solid rgba(23, 32, 42, 0.12);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        min-height: 38px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #fff;
+        background: #1f7a8c;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+        gap: 24px;
+        padding: 24px;
+        justify-items: center;
+      }
+
+      .preview {
+        display: grid;
+        gap: 10px;
+      }
+
+      .preview-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 850;
+      }
+
+      .phone {
+        width: 430px;
+        height: 844px;
+        border: 12px solid #151a22;
+        border-radius: 34px;
+        background: #fff;
+        box-shadow: 0 22px 60px rgba(23, 32, 42, 0.22);
+        overflow: hidden;
+      }
+
+      iframe {
+        width: 430px;
+        height: 844px;
+        border: 0;
+        background: #fff;
+      }
+
+      @media (max-width: 460px) {
+        main {
+          padding: 12px;
+          grid-template-columns: 1fr;
+        }
+
+        .phone,
+        iframe {
+          width: 390px;
+          max-width: calc(100vw - 24px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>390px 모바일 미리보기</h1>
+      <div class="actions">
+        <button type="button" data-target="./index.html?v=20260531-19">혼자하기 새로고침</button>
+        <button type="button" data-target="./battle.html?v=20260531-19">대전모드 새로고침</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="preview">
+        <div class="preview-title">
+          <span>혼자하기</span>
+          <span>430 x 844</span>
+        </div>
+        <div class="phone">
+          <iframe id="soloFrame" title="혼자하기 모바일 미리보기" src="./index.html?v=20260531-19"></iframe>
+        </div>
+      </section>
+
+      <section class="preview">
+        <div class="preview-title">
+          <span>대전모드</span>
+          <span>430 x 844</span>
+        </div>
+        <div class="phone">
+          <iframe id="battleFrame" title="대전모드 모바일 미리보기" src="./battle.html?v=20260531-19"></iframe>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.querySelectorAll("button[data-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.target;
+          const frame = target.includes("battle") ? battleFrame : soloFrame;
+          frame.src = `${target}&refresh=${Date.now()}`;
+        });
+      });
+    </script>
+  </body>
+</html>

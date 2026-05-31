@@ -1,6 +1,7 @@
 const boardEl = document.querySelector("#board");
 const timerEl = document.querySelector("#timer");
 const mistakesEl = document.querySelector("#mistakes");
+const currentDifficultyEl = document.querySelector("#currentDifficulty");
 const messageEl = document.querySelector("#message");
 const progressEl = document.querySelector("#progress");
 const newGameBtn = document.querySelector("#newGameBtn");
@@ -428,6 +429,7 @@ function renderProgress() {
 }
 
 function updateDifficultyButtons() {
+  currentDifficultyEl.textContent = difficultySettings[difficulty].label;
   difficultyButtons.forEach((item) => {
     const level = item.dataset.difficulty;
     const unlocked = isDifficultyUnlocked(level);

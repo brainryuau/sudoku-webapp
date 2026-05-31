@@ -21,6 +21,12 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   min-height: 100vh;
   margin: 0;
@@ -62,6 +68,7 @@ button:active {
   flex-direction: column;
   justify-content: center;
   gap: 22px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -147,6 +154,14 @@ h1 {
   display: none;
 }
 
+.battle-info-row {
+  display: contents;
+}
+
+.mobile-room-stat {
+  display: none;
+}
+
 .game-layout {
   display: grid;
   grid-template-columns: minmax(280px, 620px) minmax(260px, 360px);
@@ -166,12 +181,27 @@ h1 {
 }
 
 .sudoku-board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   width: 100%;
   height: 100%;
   border: 4px solid var(--line-strong);
   background: var(--line-strong);
+}
+
+.sudoku-board.loss-board::after {
+  content: attr(data-result);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #b23a48;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: clamp(3rem, 18vw, 7rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  pointer-events: none;
 }
 
 .cell {
@@ -450,11 +480,20 @@ h1 {
   line-height: 1.35;
 }
 
+.solo-message {
+  display: none;
+}
+
+.battle-message {
+  display: none;
+}
+
 .number-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
+  max-width: 100%;
 }
 
 .number-pad button {
@@ -477,6 +516,8 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .battle-actions {
@@ -648,6 +689,7 @@ h1 {
 
   .number-pad {
     width: 100%;
+    max-width: calc(100vw - 20px);
     grid-template-columns: repeat(9, minmax(0, 1fr));
     gap: 0;
     order: 3;
@@ -659,8 +701,15 @@ h1 {
     min-height: 34px;
     border-radius: 4px;
     padding: 0;
-    font-size: 1.52rem;
+    font-size: clamp(1.45rem, 6.2vw, 1.7rem);
     color: #233d79;
+  }
+
+  .actions,
+  .battle-actions,
+  .mobile-bottom-stats,
+  .leave-action {
+    max-width: calc(100vw - 20px);
   }
 
   .controls > .actions:not(.battle-actions) {
@@ -685,8 +734,21 @@ h1 {
     order: 5;
   }
 
-  .players-panel {
+  .battle-info-row {
     order: 6;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(86px, 30%);
+    gap: 8px;
+  }
+
+  .players-panel {
+    min-width: 0;
+  }
+
+  .mobile-room-stat {
+    display: block;
+    min-width: 0;
+    align-self: stretch;
   }
 
   .leave-action {
@@ -698,12 +760,12 @@ h1 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    padding-bottom: 18px;
   }
 
   .mobile-bottom-stats .mode-link,
-  .mobile-bottom-stats .stat {
+  .mobile-bottom-stats button {
     width: 100%;
+    min-height: 44px;
   }
 }
 
