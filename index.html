@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fbf7ff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="스도쿠" />
     <title>스도쿠</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-21" />
+    <link rel="manifest" href="./manifest.webmanifest?v=20260531-24" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-24" />
   </head>
   <body>
     <button id="settingsBtn" class="settings-fab" type="button" aria-label="개인 설정">⚙</button>
@@ -22,7 +27,7 @@
               <small>난이도를 선택하고 도전하세요</small>
             </span>
           </button>
-          <a class="home-choice battle-choice" href="./battle.html?v=20260531-21">
+          <a class="home-choice battle-choice" href="./battle.html?v=20260531-24">
             <span class="choice-icon">♧</span>
             <span>
               <strong>대전모드</strong>
@@ -41,6 +46,7 @@
           <a class="back-link" href="./index.html" aria-label="처음으로">←</a>
         </div>
         <h2 class="screen-title"><span>🌱</span> 쉬움</h2>
+        <button id="soloFocusBtn" class="focus-button" type="button">집중</button>
         <div class="timer-chip" id="timer">00:00</div>
       </section>
 
@@ -106,10 +112,24 @@
           <span>효과음 크기 <strong id="effectVolumeLabel">50%</strong></span>
           <input id="effectVolume" min="0" max="100" type="range" value="50" />
         </label>
+        <label class="setting-control">
+          <span>효과음 선택</span>
+          <select id="settingsSoundPreset">
+            <option value="soft">맑은 소리</option>
+            <option value="pop">통통 소리</option>
+            <option value="bell">벨 소리</option>
+            <option value="arcade">게임 소리</option>
+            <option value="drum">둥 소리</option>
+          </select>
+        </label>
+        <label class="setting-control color-setting">
+          <span>메시지 색깔 <strong id="chatColorLabel">보라</strong></span>
+          <input id="chatColor" type="color" value="#6f2cff" />
+        </label>
         <div class="settings-tip">💡 설정은 자동으로 저장되며 다음 접속 시에도 유지됩니다.</div>
       </section>
     </div>
 
-    <script src="./app.js?v=20260531-21"></script>
+    <script src="./app.js?v=20260531-24"></script>
   </body>
 </html>

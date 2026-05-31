@@ -215,7 +215,7 @@ a {
 .topbar,
 .setup-header {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 44px 1fr auto auto;
   align-items: center;
   gap: 8px;
 }
@@ -254,6 +254,17 @@ a {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.95rem;
   text-align: center;
+}
+
+.focus-button {
+  min-width: 52px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #fff;
+  background: #030313;
+  font-size: 0.88rem;
+  font-weight: 850;
 }
 
 .solo-content {
@@ -674,7 +685,7 @@ body.is-battle-playing .battle-game-card {
 }
 
 .battle-topbar {
-  grid-template-columns: 36px 1fr auto;
+  grid-template-columns: 36px 1fr auto auto;
 }
 
 .mobile-chat-preview {
@@ -698,6 +709,38 @@ body.is-battle-playing .battle-game-card {
   display: none;
 }
 
+.chat-message {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  max-width: 92%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-shadow: 0 8px 18px rgba(49, 38, 76, 0.12);
+}
+
+.chat-message.mine {
+  justify-self: end;
+}
+
+.chat-message strong {
+  color: currentColor;
+  font-size: 0.72rem;
+  opacity: 0.82;
+}
+
+.chat-message span {
+  color: currentColor;
+  font-size: 0.86rem;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
 .chat-form {
   display: grid;
   grid-template-columns: 1fr 44px;
@@ -717,18 +760,77 @@ body.is-battle-playing .battle-game-card {
 
 .players-panel {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
   padding: 14px;
   border-radius: 10px;
   background: linear-gradient(90deg, #fbf4ff, #fff1f7);
   box-shadow: none;
 }
 
-.players-panel .progress-row {
+.player-score-card {
   display: grid;
   justify-items: center;
-  gap: 4px;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+  color: #394355;
+  text-align: center;
+}
+
+.player-score-card span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-score-card strong {
+  color: var(--accent);
+  font-size: 1.28rem;
+  line-height: 1;
+}
+
+.player-score-card em {
+  color: #6f7684;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.player-score-card.is-empty {
+  opacity: 0.48;
+}
+
+.match-score {
+  min-width: 104px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-inline: 1px solid rgba(111, 44, 255, 0.18);
+}
+
+.match-score span {
+  color: #6a7080;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.match-score strong {
+  color: #111827;
+  font-size: clamp(1.55rem, 7vw, 2.1rem);
+  line-height: 1;
+  font-weight: 950;
+}
+
+.match-score small {
+  color: var(--accent-2);
+  font-size: 0.62em;
 }
 
 .players-panel p {
@@ -836,6 +938,35 @@ body.is-battle-playing .battle-game-card {
   accent-color: #030313;
 }
 
+.setting-control select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: #fff;
+  font-weight: 760;
+}
+
+.color-setting {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.color-setting span {
+  display: flex;
+}
+
+.color-setting input {
+  width: 54px;
+  height: 38px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .settings-tip {
   padding: 14px;
   color: #4d586c;
@@ -878,4 +1009,60 @@ body.is-battle-playing .battle-game-card {
   .cell {
     font-size: clamp(1rem, 4.9vw, 1.24rem);
   }
+}
+
+body.focus-mode {
+  background: #fbf7ff;
+  overscroll-behavior: none;
+}
+
+body.focus-mode .settings-fab {
+  display: none;
+}
+
+body.focus-mode .home-screen {
+  min-height: 100dvh;
+}
+
+body.focus-mode .app-shell {
+  width: min(448px, 100vw);
+  min-height: 100dvh;
+  padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+  align-content: start;
+}
+
+body.focus-mode .solo-shell,
+body.focus-mode .battle-game-card {
+  min-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+  padding: 14px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.focus-mode .solo-content,
+body.focus-mode .battle-game-card {
+  gap: 10px;
+}
+
+body.focus-mode .mission-panel {
+  padding: 10px 12px;
+}
+
+body.focus-mode .progress-panel p,
+body.focus-mode .unlock-status,
+body.focus-mode .mobile-bottom-stats,
+body.focus-mode .leave-action {
+  display: none;
+}
+
+body.focus-mode .board-wrap {
+  box-shadow: none;
+}
+
+body.focus-mode .number-pad {
+  gap: 6px;
+}
+
+body.focus-mode .number-pad button {
+  min-height: 34px;
 }

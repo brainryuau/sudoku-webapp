@@ -1,0 +1,16 @@
+{
+  "name": "스도쿠",
+  "short_name": "스도쿠",
+  "start_url": "./index.html?v=20260531-24",
+  "display": "fullscreen",
+  "background_color": "#fbf7ff",
+  "theme_color": "#fbf7ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

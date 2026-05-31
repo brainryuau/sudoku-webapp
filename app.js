@@ -16,11 +16,15 @@ const screenTitle = document.querySelector(".screen-title");
 const settingsBtn = document.querySelector("#settingsBtn");
 const settingsModal = document.querySelector("#settingsModal");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
+const soloFocusBtn = document.querySelector("#soloFocusBtn");
 const soundToggle = document.querySelector("#soundToggle");
 const musicVolume = document.querySelector("#musicVolume");
 const effectVolume = document.querySelector("#effectVolume");
+const settingsSoundPresetInput = document.querySelector("#settingsSoundPreset");
 const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
 const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
+const chatColorInput = document.querySelector("#chatColor");
+const chatColorLabel = document.querySelector("#chatColorLabel");
 
 const size = 9;
 const boxSize = 3;
@@ -58,7 +62,22 @@ let appSettings = {
   sound: true,
   musicVolume: 70,
   effectVolume: 50,
+  soundPreset: "soft",
+  chatColor: "#6f2cff",
 };
+
+const soundPresets = {
+  soft: { correct: [720, 1120], wrong: [150, 90], type: "sine" },
+  pop: { correct: [520, 780], wrong: [170, 110], type: "square" },
+  bell: { correct: [880, 1320], wrong: [220, 140], type: "sine" },
+  arcade: { correct: [740, 1180], wrong: [180, 80], type: "sawtooth" },
+  drum: { correct: [300, 520], wrong: [110, 70], type: "triangle" },
+};
+
+function normalizeHexColor(value) {
+  const text = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : "#6f2cff";
+}
 
 function loadSettings() {
   try {
@@ -70,8 +89,13 @@ function loadSettings() {
   soundToggle.checked = Boolean(appSettings.sound);
   musicVolume.value = String(appSettings.musicVolume);
   effectVolume.value = String(appSettings.effectVolume);
+  appSettings.soundPreset = soundPresets[appSettings.soundPreset] ? appSettings.soundPreset : "soft";
+  settingsSoundPresetInput.value = appSettings.soundPreset;
+  appSettings.chatColor = normalizeHexColor(appSettings.chatColor);
+  chatColorInput.value = appSettings.chatColor;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
 }
 
 function saveSettings() {
@@ -79,9 +103,13 @@ function saveSettings() {
     sound: soundToggle.checked,
     musicVolume: Number(musicVolume.value),
     effectVolume: Number(effectVolume.value),
+    soundPreset: soundPresets[settingsSoundPresetInput.value] ? settingsSoundPresetInput.value : "soft",
+    chatColor: normalizeHexColor(chatColorInput.value),
   };
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  chatColorInput.value = appSettings.chatColor;
+  chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
   localStorage.setItem(settingsKey, JSON.stringify(appSettings));
 }
 
@@ -99,6 +127,31 @@ function showSoloGame() {
   if (!timerId && !gameComplete) startTimer(false);
 }
 
+function isFullscreen() {
+  return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function updateFocusButton() {
+  soloFocusBtn.textContent = document.body.classList.contains("focus-mode") ? "해제" : "집중";
+}
+
+async function toggleFocusMode() {
+  try {
+    if (isFullscreen()) {
+      await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+      document.body.classList.remove("focus-mode");
+    } else {
+      document.body.classList.add("focus-mode");
+      await (document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.());
+      setTimeout(() => window.scrollTo(0, 1), 80);
+    }
+  } catch {
+    document.body.classList.toggle("focus-mode");
+    setTimeout(() => window.scrollTo(0, 1), 80);
+  }
+  updateFocusButton();
+}
+
 function playTone(kind) {
   if (!appSettings.sound) return;
   try {
@@ -107,9 +160,11 @@ function playTone(kind) {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
 
-    oscillator.type = kind === "correct" ? "sine" : "triangle";
-    oscillator.frequency.setValueAtTime(kind === "correct" ? 720 : 150, now);
-    oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 1120 : 90, now + 0.12);
+    const preset = soundPresets[appSettings.soundPreset] || soundPresets.soft;
+    const [start, end] = kind === "correct" ? preset.correct : preset.wrong;
+    oscillator.type = preset.type;
+    oscillator.frequency.setValueAtTime(start, now);
+    oscillator.frequency.exponentialRampToValueAtTime(end, now + 0.12);
     gain.gain.setValueAtTime(0.0001, now);
     const volume = Math.max(0, Math.min(1, appSettings.effectVolume / 100));
     gain.gain.exponentialRampToValueAtTime((kind === "correct" ? 0.18 : 0.2) * volume, now + 0.015);
@@ -728,10 +783,19 @@ document.addEventListener("keydown", (event) => {
 soloStartBtn.addEventListener("click", showSoloGame);
 settingsBtn.addEventListener("click", openSettings);
 closeSettingsBtn.addEventListener("click", closeSettings);
+soloFocusBtn.addEventListener("click", toggleFocusMode);
+document.addEventListener("fullscreenchange", () => {
+  if (!isFullscreen()) document.body.classList.remove("focus-mode");
+  updateFocusButton();
+});
+document.addEventListener("webkitfullscreenchange", () => {
+  if (!isFullscreen()) document.body.classList.remove("focus-mode");
+  updateFocusButton();
+});
 settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) closeSettings();
 });
-[soundToggle, musicVolume, effectVolume].forEach((control) => {
+[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput].forEach((control) => {
   control.addEventListener("input", saveSettings);
   control.addEventListener("change", saveSettings);
 });

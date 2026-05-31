@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fbf7ff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="스도쿠" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-21" />
+    <link rel="manifest" href="./manifest.webmanifest?v=20260531-24" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-24" />
   </head>
   <body>
     <button id="settingsBtn" class="settings-fab" type="button" aria-label="개인 설정">⚙</button>
@@ -105,6 +110,7 @@
         <section class="topbar battle-topbar" aria-label="대전 상태">
           <a class="back-link" href="./battle.html" aria-label="대전 처음으로">←</a>
           <h2 class="screen-title"><span>♧</span> 대전모드</h2>
+          <button id="battleFocusBtn" class="focus-button" type="button">집중</button>
           <div class="timer-chip" id="battleTimer">00:00</div>
           <div class="visually-hidden" id="mobileBattleTimer">00:00</div>
           <div class="visually-hidden">
@@ -187,10 +193,24 @@
           <span>효과음 크기 <strong id="effectVolumeLabel">50%</strong></span>
           <input id="effectVolume" min="0" max="100" type="range" value="50" />
         </label>
+        <label class="setting-control">
+          <span>효과음 선택</span>
+          <select id="settingsSoundPreset">
+            <option value="soft">맑은 소리</option>
+            <option value="pop">통통 소리</option>
+            <option value="bell">벨 소리</option>
+            <option value="arcade">게임 소리</option>
+            <option value="drum">둥 소리</option>
+          </select>
+        </label>
+        <label class="setting-control color-setting">
+          <span>메시지 색깔 <strong id="chatColorLabel">보라</strong></span>
+          <input id="chatColor" type="color" value="#6f2cff" />
+        </label>
         <div class="settings-tip">💡 설정은 자동으로 저장되며 다음 접속 시에도 유지됩니다.</div>
       </section>
     </div>
 
-    <script type="module" src="./battle.js?v=20260531-21"></script>
+    <script type="module" src="./battle.js?v=20260531-24"></script>
   </body>
 </html>

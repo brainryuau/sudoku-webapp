@@ -56,11 +56,15 @@ const roomSummary = document.querySelector(".room-summary");
 const settingsBtn = document.querySelector("#settingsBtn");
 const settingsModal = document.querySelector("#settingsModal");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
+const battleFocusBtn = document.querySelector("#battleFocusBtn");
 const soundToggle = document.querySelector("#soundToggle");
 const musicVolume = document.querySelector("#musicVolume");
 const effectVolume = document.querySelector("#effectVolume");
+const settingsSoundPresetInput = document.querySelector("#settingsSoundPreset");
 const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
 const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
+const chatColorInput = document.querySelector("#chatColor");
+const chatColorLabel = document.querySelector("#chatColorLabel");
 
 const size = 9;
 const boxSize = 3;
@@ -105,6 +109,8 @@ let appSettings = {
   sound: true,
   musicVolume: 70,
   effectVolume: 50,
+  soundPreset: "soft",
+  chatColor: "#6f2cff",
 };
 
 localStorage.setItem(playerKey, playerId);
@@ -119,8 +125,14 @@ function loadSettings() {
   soundToggle.checked = Boolean(appSettings.sound);
   musicVolume.value = String(appSettings.musicVolume);
   effectVolume.value = String(appSettings.effectVolume);
+  appSettings.soundPreset = soundPresets[appSettings.soundPreset] ? appSettings.soundPreset : "soft";
+  settingsSoundPresetInput.value = appSettings.soundPreset;
+  soundPresetInput.value = appSettings.soundPreset;
+  appSettings.chatColor = normalizeHexColor(appSettings.chatColor);
+  chatColorInput.value = appSettings.chatColor;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
   if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
 }
 
@@ -129,11 +141,36 @@ function saveSettings() {
     sound: soundToggle.checked,
     musicVolume: Number(musicVolume.value),
     effectVolume: Number(effectVolume.value),
+    soundPreset: soundPresets[settingsSoundPresetInput.value] ? settingsSoundPresetInput.value : "soft",
+    chatColor: normalizeHexColor(chatColorInput.value),
   };
+  soundPreset = appSettings.soundPreset;
+  soundPresetInput.value = appSettings.soundPreset;
   musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
   effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  chatColorInput.value = appSettings.chatColor;
+  chatColorLabel.textContent = appSettings.chatColor.toUpperCase();
   if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
   localStorage.setItem(settingsKey, JSON.stringify(appSettings));
+}
+
+function normalizeHexColor(value) {
+  const text = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : "#6f2cff";
+}
+
+function textColorFor(background) {
+  const hex = normalizeHexColor(background).slice(1);
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? "#172033" : "#ffffff";
+}
+
+function chatBubbleStyle(color) {
+  const background = normalizeHexColor(color);
+  return `style="background:${background};color:${textColorFor(background)}"`;
 }
 
 function openSettings() {
@@ -152,6 +189,31 @@ function showSetupScreen() {
 function showBattleGame() {
   document.body.classList.add("is-battle-playing");
   setupPanel.classList.add("is-hidden");
+}
+
+function isFullscreen() {
+  return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function updateFocusButton() {
+  battleFocusBtn.textContent = document.body.classList.contains("focus-mode") ? "해제" : "집중";
+}
+
+async function toggleFocusMode() {
+  try {
+    if (isFullscreen()) {
+      await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+      document.body.classList.remove("focus-mode");
+    } else {
+      document.body.classList.add("focus-mode");
+      await (document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.());
+      setTimeout(() => window.scrollTo(0, 1), 80);
+    }
+  } catch {
+    document.body.classList.toggle("focus-mode");
+    setTimeout(() => window.scrollTo(0, 1), 80);
+  }
+  updateFocusButton();
 }
 
 function hasFirebaseConfig() {
@@ -447,7 +509,7 @@ function getHintLimit() {
 }
 
 function getSoundPreset() {
-  return soundPresets[soundPresetInput?.value] ? soundPresetInput.value : "soft";
+  return soundPresets[settingsSoundPresetInput?.value] ? settingsSoundPresetInput.value : "soft";
 }
 
 function eraseRemaining() {
@@ -688,9 +750,11 @@ async function syncPlayer(extra = {}) {
     isFinished = true;
     clearInterval(timerId);
     setPlayControlsDisabled(true);
+    const nextScore = Math.max(0, Number(room?.scores?.[playerId]) || 0) + 1;
     await update(ref(db, `rooms/${roomCode}`), {
       status: "finished",
       winnerId: playerId,
+      [`scores/${playerId}`]: nextScore,
       finishedAt: serverTimestamp(),
     });
     setMessage("완성! 상대보다 먼저 끝냈다면 승리입니다.");
@@ -772,18 +836,41 @@ function renderPlayers() {
     return;
   }
 
-  playersPanel.innerHTML = players
-    .map(([id, player]) => {
-      const winner = room?.winnerId === id ? " · 승리" : "";
+  const mine = players.find(([id]) => id === playerId) || players[0];
+  const opponent = players.find(([id]) => id !== mine[0]);
+  const mineScore = Math.max(0, Number(room?.scores?.[mine[0]]) || 0);
+  const opponentScore = opponent ? Math.max(0, Number(room?.scores?.[opponent[0]]) || 0) : 0;
+
+  function playerCard(entry, fallbackName) {
+    if (!entry) {
       return `
-        <div class="progress-row">
-          <span>${player.name || "플레이어"}${id === playerId ? " (나)" : ""}</span>
-          <strong>${player.progress || 0}/81</strong>
+        <div class="player-score-card is-empty">
+          <span>${fallbackName}</span>
+          <strong>0/81</strong>
+          <em>대기</em>
         </div>
-        <p>${formatTime(player.seconds || 0)} · 지우기 ${player.eraseUsed || 0}/${room?.eraseLimit ?? eraseLimit} · 힌트 ${player.hintUsed || 0}/${room?.hintLimit ?? hintLimit}${winner}</p>
       `;
-    })
-    .join("");
+    }
+
+    const [id, player] = entry;
+    const result = room?.winnerId === id ? "승리" : room?.status === "finished" ? "패배" : formatTime(player.seconds || 0);
+    return `
+      <div class="player-score-card${id === playerId ? " is-me" : ""}">
+        <span>${escapeHtml(player.name || "플레이어")}${id === playerId ? " (나)" : ""}</span>
+        <strong>${player.progress || 0}/81</strong>
+        <em>${result}</em>
+      </div>
+    `;
+  }
+
+  playersPanel.innerHTML = `
+    ${playerCard(mine, "나")}
+    <div class="match-score" aria-label="성적표">
+      <span>성적표</span>
+      <strong>${mineScore} <small>vs</small> ${opponentScore}</strong>
+    </div>
+    ${playerCard(opponent, "상대")}
+  `;
 }
 
 function renderChat() {
@@ -807,8 +894,9 @@ function renderChat() {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
       const text = escapeHtml(message.text || "");
+      const style = chatBubbleStyle(message.color);
       return `
-        <div class="chat-message${mine}">
+        <div class="chat-message${mine}" ${style}>
           <strong>${name}</strong>
           <span>${text}</span>
         </div>
@@ -821,8 +909,9 @@ function renderChat() {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
       const text = escapeHtml(message.text || "");
+      const style = chatBubbleStyle(message.color);
       return `
-        <div class="chat-message${mine}">
+        <div class="chat-message${mine}" ${style}>
           <strong>${name}</strong>
           <span>${text}</span>
         </div>
@@ -854,7 +943,7 @@ function handleRoomUpdate(snapshot) {
   eraseLimit = Number.isInteger(room.eraseLimit) ? room.eraseLimit : eraseLimit;
   hintLimit = Number.isInteger(room.hintLimit) ? room.hintLimit : hintLimit;
   chatMode = room.chatMode || chatMode;
-  soundPreset = soundPresets[room.soundPreset] ? room.soundPreset : soundPreset;
+  soundPreset = soundPresets[appSettings.soundPreset] ? appSettings.soundPreset : soundPreset;
   soundVolume = Number.isInteger(room.soundVolume) ? room.soundVolume : soundVolume;
   if (soundPresetInput) soundPresetInput.value = soundPreset;
   if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
@@ -955,6 +1044,9 @@ async function createRoom() {
     puzzle,
     solution,
     createdAt: serverTimestamp(),
+    scores: {
+      [playerId]: 0,
+    },
     players: {
       [playerId]: {
         name: playerName,
@@ -1007,7 +1099,7 @@ async function joinRoom() {
   hintLimit = Number.isInteger(nextRoom.hintLimit) ? nextRoom.hintLimit : 2;
   hintUsed = 0;
   chatMode = nextRoom.chatMode || "free";
-  soundPreset = soundPresets[nextRoom.soundPreset] ? nextRoom.soundPreset : "soft";
+  soundPreset = soundPresets[appSettings.soundPreset] ? appSettings.soundPreset : "soft";
   soundVolume = Number.isInteger(nextRoom.soundVolume) ? nextRoom.soundVolume : 80;
   if (soundPresetInput) soundPresetInput.value = soundPreset;
   if (soundVolumeInput) soundVolumeInput.value = String(soundVolume);
@@ -1029,6 +1121,9 @@ async function joinRoom() {
     done: false,
     joinedAt: serverTimestamp(),
   });
+  if (!Number.isInteger(nextRoom.scores?.[playerId])) {
+    await update(ref(db, `rooms/${roomCode}/scores`), { [playerId]: 0 });
+  }
 
   showBattleGame();
   setRoomCodeText(roomCode);
@@ -1207,6 +1302,7 @@ async function sendChat() {
       playerId,
       name: playerName,
       text,
+      color: normalizeHexColor(appSettings.chatColor),
       createdAt: Date.now(),
     });
     if (chatMode === "earned") {
@@ -1293,7 +1389,8 @@ chatModeButtons.forEach((button) => {
   });
 });
 
-soundPresetInput?.addEventListener("change", () => {
+settingsSoundPresetInput?.addEventListener("change", () => {
+  saveSettings();
   soundPreset = getSoundPreset();
   playTone("correct");
   saveSession();
@@ -1324,10 +1421,19 @@ eraseLimitButtons.forEach((button) => {
 
 settingsBtn.addEventListener("click", openSettings);
 closeSettingsBtn.addEventListener("click", closeSettings);
+battleFocusBtn.addEventListener("click", toggleFocusMode);
+document.addEventListener("fullscreenchange", () => {
+  if (!isFullscreen()) document.body.classList.remove("focus-mode");
+  updateFocusButton();
+});
+document.addEventListener("webkitfullscreenchange", () => {
+  if (!isFullscreen()) document.body.classList.remove("focus-mode");
+  updateFocusButton();
+});
 settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) closeSettings();
 });
-[soundToggle, musicVolume, effectVolume].forEach((control) => {
+[soundToggle, musicVolume, effectVolume, settingsSoundPresetInput, chatColorInput].forEach((control) => {
   control.addEventListener("input", saveSettings);
   control.addEventListener("change", saveSettings);
 });
