@@ -689,7 +689,8 @@ body.is-battle-playing .battle-game-card {
 }
 
 .mobile-chat-preview {
-  min-height: 58px;
+  min-height: 92px;
+  max-height: 92px;
   display: grid;
   align-content: center;
   gap: 6px;
@@ -697,7 +698,20 @@ body.is-battle-playing .battle-game-card {
   border-radius: 8px;
   background: #fafafa;
   color: #9aa1ad;
+  overflow: hidden;
   text-align: center;
+}
+
+.mobile-chat-preview .chat-message {
+  max-width: 100%;
+  padding: 7px 10px;
+}
+
+.mobile-chat-preview .chat-message span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
 .chat-panel {

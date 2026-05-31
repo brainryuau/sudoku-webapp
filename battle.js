@@ -927,7 +927,7 @@ function renderChat() {
     })
     .join("");
   mobileChatPreviewEl.innerHTML = messages
-    .slice(-3)
+    .slice(-2)
     .map((message) => {
       const mine = message.playerId === playerId ? " mine" : "";
       const name = escapeHtml(message.name || "플레이어");
