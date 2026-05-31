@@ -50,11 +50,23 @@ const restartRoomBtn = document.querySelector("#restartRoomBtn");
 const difficultyButtons = [...document.querySelectorAll("[data-battle-difficulty]")];
 const chatModeButtons = [...document.querySelectorAll("[data-chat-mode]")];
 const numberButtons = [...document.querySelectorAll("[data-battle-number]")];
+const hintLimitButtons = [...document.querySelectorAll("[data-hint-limit]")];
+const eraseLimitButtons = [...document.querySelectorAll("[data-erase-limit]")];
+const roomSummary = document.querySelector(".room-summary");
+const settingsBtn = document.querySelector("#settingsBtn");
+const settingsModal = document.querySelector("#settingsModal");
+const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
+const soundToggle = document.querySelector("#soundToggle");
+const musicVolume = document.querySelector("#musicVolume");
+const effectVolume = document.querySelector("#effectVolume");
+const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
+const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
 
 const size = 9;
 const boxSize = 3;
 const sessionKey = "classic-sudoku-battle-session-v1";
 const playerKey = "classic-sudoku-battle-player-v1";
+const settingsKey = "classic-sudoku-settings-v1";
 const difficultySettings = {
   easy: { label: "쉬움", clues: 45 },
   medium: { label: "보통", clues: 36 },
@@ -89,8 +101,58 @@ let soundVolume = 80;
 let completedUnits = new Set();
 let roundId = "";
 let audioContext = null;
+let appSettings = {
+  sound: true,
+  musicVolume: 70,
+  effectVolume: 50,
+};
 
 localStorage.setItem(playerKey, playerId);
+
+function loadSettings() {
+  try {
+    appSettings = { ...appSettings, ...JSON.parse(localStorage.getItem(settingsKey) || "{}") };
+  } catch {
+    localStorage.removeItem(settingsKey);
+  }
+
+  soundToggle.checked = Boolean(appSettings.sound);
+  musicVolume.value = String(appSettings.musicVolume);
+  effectVolume.value = String(appSettings.effectVolume);
+  musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
+  effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
+}
+
+function saveSettings() {
+  appSettings = {
+    sound: soundToggle.checked,
+    musicVolume: Number(musicVolume.value),
+    effectVolume: Number(effectVolume.value),
+  };
+  musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
+  effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  if (soundVolumeInput) soundVolumeInput.value = String(appSettings.effectVolume);
+  localStorage.setItem(settingsKey, JSON.stringify(appSettings));
+}
+
+function openSettings() {
+  settingsModal.classList.remove("is-hidden");
+}
+
+function closeSettings() {
+  settingsModal.classList.add("is-hidden");
+}
+
+function showSetupScreen() {
+  document.body.classList.remove("is-battle-playing");
+  setupPanel.classList.remove("is-hidden");
+}
+
+function showBattleGame() {
+  document.body.classList.add("is-battle-playing");
+  setupPanel.classList.add("is-hidden");
+}
 
 function hasFirebaseConfig() {
   return !Object.values(firebaseConfig).some((value) => value.includes("YOUR_"));
@@ -115,12 +177,14 @@ const soundPresets = {
 };
 
 function getSoundVolume() {
-  const value = Number(soundVolumeInput?.value);
+  if (!appSettings.sound) return 0;
+  const value = Number(appSettings.effectVolume);
   if (!Number.isFinite(value)) return 0.8;
   return Math.max(0, Math.min(1, value / 100));
 }
 
 function playTone(kind) {
+  if (!appSettings.sound) return;
   try {
     audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -373,7 +437,7 @@ function getName() {
 function getEraseLimit() {
   const value = Number(eraseLimitInput?.value);
   if (!Number.isFinite(value)) return 3;
-  return Math.max(0, Math.min(9, Math.floor(value)));
+  return Math.max(0, Math.min(99, Math.floor(value)));
 }
 
 function getHintLimit() {
@@ -395,7 +459,7 @@ function hintRemaining() {
 }
 
 function updateEraseButton() {
-  eraseBtn.textContent = `지우기 ${eraseRemaining()}/${eraseLimit}`;
+  eraseBtn.textContent = eraseLimit >= 99 ? "지우기 무제한" : `지우기 ${eraseRemaining()}/${eraseLimit}`;
   eraseBtn.disabled = isFinished || !roomCode || eraseRemaining() <= 0;
 }
 
@@ -481,7 +545,7 @@ function resetBattleState(text = "방을 만들거나 코드를 입력해서 참
   setRoomCodeText("----");
   timerEl.textContent = "00:00";
   if (mobileTimerEl) mobileTimerEl.textContent = "00:00";
-  setupPanel.classList.remove("is-hidden");
+  showSetupScreen();
   setPlayControlsDisabled(true);
   updateEraseButton();
   updateHintButton();
@@ -873,7 +937,7 @@ async function createRoom() {
   playerGrid = cloneGrid(puzzle);
   seconds = 0;
   isFinished = false;
-  setupPanel.classList.add("is-hidden");
+  showBattleGame();
   renderBoard();
   saveSession();
   setMessage(`방 코드 ${roomCode} 생성 완료. Firebase에 저장하는 중입니다...`);
@@ -966,7 +1030,7 @@ async function joinRoom() {
     joinedAt: serverTimestamp(),
   });
 
-  setupPanel.classList.add("is-hidden");
+  showBattleGame();
   setRoomCodeText(roomCode);
   startTimer(true);
   watchRoom();
@@ -1159,12 +1223,27 @@ function updateDifficultyButtons() {
   difficultyButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.battleDifficulty === difficulty);
   });
+  updateRoomSummary();
 }
 
 function updateChatModeButtons() {
   chatModeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.chatMode === chatMode);
   });
+}
+
+function updateLimitButtons(buttons, value, attribute) {
+  buttons.forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset[attribute]) === value);
+  });
+}
+
+function updateRoomSummary() {
+  if (!roomSummary) return;
+  const label = difficultySettings[difficulty]?.label || "쉬움";
+  const icon = difficulty === "easy" ? "🌱" : difficulty === "medium" ? "🔥" : "⚡";
+  const eraseText = getEraseLimit() >= 99 ? "무제한" : `${getEraseLimit()}회`;
+  roomSummary.textContent = `${icon} ${label} | 힌트 ${getHintLimit()}회 | 지우기 ${eraseText}`;
 }
 
 function boot() {
@@ -1184,7 +1263,7 @@ function boot() {
   db = getDatabase(initializeApp(firebaseConfig));
 
   if (loadSession()) {
-    setupPanel.classList.add("is-hidden");
+    showBattleGame();
     setRoomCodeText(roomCode);
     startTimer(false);
     watchRoom();
@@ -1196,6 +1275,7 @@ function boot() {
   updateHintButton();
   updateChatInputState();
   updateChatModeButtons();
+  updateRoomSummary();
 }
 
 difficultyButtons.forEach((button) => {
@@ -1224,6 +1304,34 @@ soundVolumeInput?.addEventListener("input", () => {
   saveSession();
 });
 
+hintLimitButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const value = Number(button.dataset.hintLimit);
+    hintLimitInput.value = String(value);
+    updateLimitButtons(hintLimitButtons, value, "hintLimit");
+    updateRoomSummary();
+  });
+});
+
+eraseLimitButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const value = Number(button.dataset.eraseLimit);
+    eraseLimitInput.value = String(value);
+    updateLimitButtons(eraseLimitButtons, value, "eraseLimit");
+    updateRoomSummary();
+  });
+});
+
+settingsBtn.addEventListener("click", openSettings);
+closeSettingsBtn.addEventListener("click", closeSettings);
+settingsModal.addEventListener("click", (event) => {
+  if (event.target === settingsModal) closeSettings();
+});
+[soundToggle, musicVolume, effectVolume].forEach((control) => {
+  control.addEventListener("input", saveSettings);
+  control.addEventListener("change", saveSettings);
+});
+
 numberButtons.forEach((button) => {
   button.addEventListener("click", () => runAction(() => inputNumber(Number(button.dataset.battleNumber))));
 });
@@ -1250,4 +1358,5 @@ document.addEventListener("keydown", (event) => {
 });
 
 updateDifficultyButtons();
+loadSettings();
 boot();

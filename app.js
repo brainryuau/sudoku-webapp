@@ -9,10 +9,23 @@ const eraseBtn = document.querySelector("#eraseBtn");
 const hintBtn = document.querySelector("#hintBtn");
 const difficultyButtons = [...document.querySelectorAll(".difficulty-btn")];
 const numberButtons = [...document.querySelectorAll("[data-number]")];
+const homeScreen = document.querySelector("#homeScreen");
+const soloGame = document.querySelector("#soloGame");
+const soloStartBtn = document.querySelector("#soloStartBtn");
+const screenTitle = document.querySelector(".screen-title");
+const settingsBtn = document.querySelector("#settingsBtn");
+const settingsModal = document.querySelector("#settingsModal");
+const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
+const soundToggle = document.querySelector("#soundToggle");
+const musicVolume = document.querySelector("#musicVolume");
+const effectVolume = document.querySelector("#effectVolume");
+const musicVolumeLabel = document.querySelector("#musicVolumeLabel");
+const effectVolumeLabel = document.querySelector("#effectVolumeLabel");
 
 const size = 9;
 const boxSize = 3;
 const saveKey = "classic-sudoku-game-state-v1";
+const settingsKey = "classic-sudoku-settings-v1";
 const difficultySettings = {
   easy: { label: "쉬움", clues: 45, limitSeconds: 10 * 60 },
   medium: { label: "보통", clues: 36, limitSeconds: 30 * 60 },
@@ -41,8 +54,53 @@ let progress = {
   easyTimedWins: 0,
   mediumTimedWins: 0,
 };
+let appSettings = {
+  sound: true,
+  musicVolume: 70,
+  effectVolume: 50,
+};
+
+function loadSettings() {
+  try {
+    appSettings = { ...appSettings, ...JSON.parse(localStorage.getItem(settingsKey) || "{}") };
+  } catch {
+    localStorage.removeItem(settingsKey);
+  }
+
+  soundToggle.checked = Boolean(appSettings.sound);
+  musicVolume.value = String(appSettings.musicVolume);
+  effectVolume.value = String(appSettings.effectVolume);
+  musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
+  effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+}
+
+function saveSettings() {
+  appSettings = {
+    sound: soundToggle.checked,
+    musicVolume: Number(musicVolume.value),
+    effectVolume: Number(effectVolume.value),
+  };
+  musicVolumeLabel.textContent = `${appSettings.musicVolume}%`;
+  effectVolumeLabel.textContent = `${appSettings.effectVolume}%`;
+  localStorage.setItem(settingsKey, JSON.stringify(appSettings));
+}
+
+function openSettings() {
+  settingsModal.classList.remove("is-hidden");
+}
+
+function closeSettings() {
+  settingsModal.classList.add("is-hidden");
+}
+
+function showSoloGame() {
+  homeScreen.classList.add("is-hidden");
+  soloGame.classList.remove("is-hidden");
+  if (!timerId && !gameComplete) startTimer(false);
+}
 
 function playTone(kind) {
+  if (!appSettings.sound) return;
   try {
     audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
     const now = audioContext.currentTime;
@@ -53,7 +111,8 @@ function playTone(kind) {
     oscillator.frequency.setValueAtTime(kind === "correct" ? 720 : 150, now);
     oscillator.frequency.exponentialRampToValueAtTime(kind === "correct" ? 1120 : 90, now + 0.12);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(kind === "correct" ? 0.18 : 0.2, now + 0.015);
+    const volume = Math.max(0, Math.min(1, appSettings.effectVolume / 100));
+    gain.gain.exponentialRampToValueAtTime((kind === "correct" ? 0.18 : 0.2) * volume, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.17);
 
     oscillator.connect(gain);
@@ -430,6 +489,10 @@ function renderProgress() {
 
 function updateDifficultyButtons() {
   currentDifficultyEl.textContent = difficultySettings[difficulty].label;
+  if (screenTitle) {
+    const icon = difficulty === "easy" ? "🌱" : difficulty === "medium" ? "🔥" : "⚡";
+    screenTitle.innerHTML = `<span>${icon}</span> ${difficultySettings[difficulty].label}`;
+  }
   difficultyButtons.forEach((item) => {
     const level = item.dataset.difficulty;
     const unlocked = isDifficultyUnlocked(level);
@@ -662,4 +725,18 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowRight") moveSelection(0, 1);
 });
 
+soloStartBtn.addEventListener("click", showSoloGame);
+settingsBtn.addEventListener("click", openSettings);
+closeSettingsBtn.addEventListener("click", closeSettings);
+settingsModal.addEventListener("click", (event) => {
+  if (event.target === settingsModal) closeSettings();
+});
+[soundToggle, musicVolume, effectVolume].forEach((control) => {
+  control.addEventListener("input", saveSettings);
+  control.addEventListener("change", saveSettings);
+});
+
+loadSettings();
 startApp();
+clearInterval(timerId);
+timerId = null;

@@ -4,103 +4,139 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sudoku Battle</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-20" />
+    <link rel="stylesheet" href="./styles.css?v=20260531-21" />
   </head>
   <body>
-    <main class="app-shell">
-      <section class="topbar" aria-label="대전 상태">
-        <div>
-          <div class="mobile-time-title">
-            <span>시간</span>
-            <strong id="mobileBattleTimer">00:00</strong>
-          </div>
+    <button id="settingsBtn" class="settings-fab" type="button" aria-label="개인 설정">⚙</button>
+
+    <main class="app-shell battle-shell">
+      <section class="battle-setup-card" id="setupPanel">
+        <div class="setup-header">
+          <a class="back-link" href="./index.html" aria-label="처음으로">←</a>
+          <h1><span>♧</span> 대전모드</h1>
         </div>
-        <div id="mobileChatPreview" class="mobile-chat-preview" aria-label="최근 채팅"></div>
-        <div class="stats">
-          <a class="mode-link" href="./index.html">혼자하기</a>
-          <div class="stat">
-            <span>방 코드</span>
-            <strong id="roomCode">----</strong>
+
+        <div class="battle-hero">
+          <div class="battle-avatar">♧</div>
+          <h2>친구와 함께 스도쿠를 즐기세요</h2>
+          <p>실시간으로 점수를 비교하며 대결할 수 있습니다</p>
+        </div>
+
+        <label class="field-label">
+          이름
+          <input id="playerName" maxlength="14" placeholder="플레이어" />
+        </label>
+
+        <label class="field-label">
+          만들 방 코드
+          <input id="customRoomCode" maxlength="12" placeholder="원하는 방 이름" />
+        </label>
+
+        <button id="createRoomBtn" class="primary gradient-action" type="button">＋ 방 만들기</button>
+
+        <div class="divider"><span>또는</span></div>
+
+        <div class="join-row">
+          <input id="joinCode" maxlength="12" placeholder="방 코드로 참가" />
+          <button id="joinRoomBtn" class="secondary" type="button">참가</button>
+        </div>
+
+        <section class="room-settings" aria-label="방 설정">
+          <h2>방 설정</h2>
+
+          <p class="setting-label">난이도 선택</p>
+          <div class="difficulty room-difficulty" role="group" aria-label="대전 난이도">
+            <button class="difficulty-btn active" data-battle-difficulty="easy">🌱<span>쉬움</span></button>
+            <button class="difficulty-btn" data-battle-difficulty="medium">🔥<span>보통</span></button>
+            <button class="difficulty-btn" data-battle-difficulty="hard">⚡<span>어려움</span></button>
           </div>
-          <div class="stat">
-            <span>시간</span>
-            <strong id="battleTimer">00:00</strong>
+
+          <p class="setting-label">힌트 횟수</p>
+          <input id="hintLimit" class="visually-hidden" min="0" max="10" type="number" value="3" />
+          <div class="limit-options" role="group" aria-label="힌트 횟수">
+            <button type="button" data-hint-limit="1">1</button>
+            <button type="button" data-hint-limit="2">2</button>
+            <button type="button" data-hint-limit="3" class="active">3</button>
+            <button type="button" data-hint-limit="5">5</button>
+            <button type="button" data-hint-limit="10">10</button>
           </div>
+
+          <p class="setting-label">지우기 횟수</p>
+          <input id="eraseLimit" class="visually-hidden" min="0" max="99" type="number" value="99" />
+          <div class="limit-options" role="group" aria-label="지우기 횟수">
+            <button type="button" data-erase-limit="3">3</button>
+            <button type="button" data-erase-limit="5">5</button>
+            <button type="button" data-erase-limit="10">10</button>
+            <button type="button" data-erase-limit="20">20</button>
+            <button type="button" data-erase-limit="99" class="active">무제한</button>
+          </div>
+
+          <div class="room-summary">🌱 쉬움 | 힌트 3회 | 지우기 무제한</div>
+        </section>
+
+        <section class="battle-guide">
+          <strong>💡 대전모드 안내</strong>
+          <p>동일한 스도쿠 퍼즐을 함께 풉니다</p>
+          <p>정답을 맞힐 때마다 점수가 올라갑니다</p>
+          <p>먼저 완성하거나 높은 점수를 얻으세요</p>
+        </section>
+
+        <label class="visually-hidden">
+          효과음
+          <select id="soundPreset">
+            <option value="soft">맑은 소리</option>
+            <option value="pop">통통 소리</option>
+            <option value="bell">벨 소리</option>
+            <option value="arcade">게임 소리</option>
+            <option value="drum">둥 소리</option>
+          </select>
+        </label>
+        <label class="visually-hidden">
+          효과음 크기
+          <input id="soundVolume" min="0" max="100" type="range" value="50" />
+        </label>
+        <div class="visually-hidden" role="group" aria-label="대화 모드">
+          <button class="difficulty-btn active" data-chat-mode="free">일반대화</button>
+          <button class="difficulty-btn" data-chat-mode="earned">게임대화</button>
         </div>
       </section>
 
-      <section class="game-layout">
+      <section class="battle-game-card">
+        <section class="topbar battle-topbar" aria-label="대전 상태">
+          <a class="back-link" href="./battle.html" aria-label="대전 처음으로">←</a>
+          <h2 class="screen-title"><span>♧</span> 대전모드</h2>
+          <div class="timer-chip" id="battleTimer">00:00</div>
+          <div class="visually-hidden" id="mobileBattleTimer">00:00</div>
+          <div class="visually-hidden">
+            <span>방 코드</span>
+            <strong id="roomCode">----</strong>
+          </div>
+        </section>
+
+        <div id="mobileChatPreview" class="mobile-chat-preview" aria-label="최근 채팅"></div>
+
+        <section class="chat-panel" aria-label="대전 채팅">
+          <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+          <div class="chat-form">
+            <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
+            <button id="sendChatBtn" class="secondary send-button" type="button">➤</button>
+          </div>
+        </section>
+
+        <div class="battle-info-row">
+          <div id="playersPanel" class="progress-panel players-panel"></div>
+          <div class="stat mobile-room-stat">
+            <span>방 코드</span>
+            <strong id="mobileRoomCode">----</strong>
+          </div>
+        </div>
+
+        <section class="game-layout battle-play-layout">
         <div class="board-wrap">
           <div id="battleBoard" class="sudoku-board" aria-label="대전 스도쿠 보드"></div>
         </div>
 
         <aside class="controls" aria-label="대전 조작">
-          <div class="battle-panel" id="setupPanel">
-            <label>
-              이름
-              <input id="playerName" maxlength="14" placeholder="플레이어" />
-            </label>
-            <label>
-              방 코드
-              <input id="joinCode" maxlength="6" placeholder="예: A7K2Q9" />
-            </label>
-            <label>
-              만들 방 코드
-              <input id="customRoomCode" maxlength="12" placeholder="예: FRIEND1" />
-            </label>
-            <label>
-              지우기 횟수
-              <input id="eraseLimit" min="0" max="9" type="number" value="3" />
-            </label>
-            <label>
-              힌트 횟수
-              <input id="hintLimit" min="0" max="9" type="number" value="2" />
-            </label>
-            <label>
-              효과음
-              <select id="soundPreset">
-                <option value="soft">맑은 소리</option>
-                <option value="pop">통통 소리</option>
-                <option value="bell">벨 소리</option>
-                <option value="arcade">게임 소리</option>
-                <option value="drum">둥 소리</option>
-              </select>
-            </label>
-            <label>
-              효과음 크기
-              <input id="soundVolume" min="0" max="100" type="range" value="80" />
-            </label>
-            <div class="difficulty" role="group" aria-label="대화 모드">
-              <button class="difficulty-btn active" data-chat-mode="free">일반대화</button>
-              <button class="difficulty-btn" data-chat-mode="earned">게임대화</button>
-            </div>
-            <div class="difficulty" role="group" aria-label="대전 난이도">
-              <button class="difficulty-btn active" data-battle-difficulty="easy">쉬움</button>
-              <button class="difficulty-btn" data-battle-difficulty="medium">보통</button>
-              <button class="difficulty-btn" data-battle-difficulty="hard">어려움</button>
-            </div>
-            <div class="actions">
-              <button id="joinRoomBtn" class="secondary">참가</button>
-              <button id="createRoomBtn" class="primary">방 만들기</button>
-            </div>
-          </div>
-
-          <div class="battle-info-row">
-            <div id="playersPanel" class="progress-panel players-panel"></div>
-            <div class="stat mobile-room-stat">
-              <span>방 코드</span>
-              <strong id="mobileRoomCode">----</strong>
-            </div>
-          </div>
-
-          <section class="chat-panel" aria-label="대전 채팅">
-            <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
-            <div class="chat-form">
-              <input id="chatInput" maxlength="120" placeholder="메시지 입력" />
-              <button id="sendChatBtn" class="primary" type="button">전송</button>
-            </div>
-          </section>
-
           <div class="number-pad" aria-label="숫자 입력">
             <button data-battle-number="1">1</button>
             <button data-battle-number="2">2</button>
@@ -130,8 +166,31 @@
       </div>
 
       <button id="leaveRoomBtn" class="secondary danger leave-action">방 나가기</button>
+      </section>
     </main>
 
-    <script type="module" src="./battle.js?v=20260531-20"></script>
+    <div id="settingsModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <section class="settings-modal">
+        <div class="modal-head">
+          <h2 id="settingsTitle">⚙ 개인 설정</h2>
+          <button id="closeSettingsBtn" class="icon-button" type="button" aria-label="닫기">×</button>
+        </div>
+        <label class="setting-row">
+          <span>🔊 사운드</span>
+          <input id="soundToggle" type="checkbox" checked />
+        </label>
+        <label class="setting-control">
+          <span>배경음 크기 <strong id="musicVolumeLabel">70%</strong></span>
+          <input id="musicVolume" min="0" max="100" type="range" value="70" />
+        </label>
+        <label class="setting-control">
+          <span>효과음 크기 <strong id="effectVolumeLabel">50%</strong></span>
+          <input id="effectVolume" min="0" max="100" type="range" value="50" />
+        </label>
+        <div class="settings-tip">💡 설정은 자동으로 저장되며 다음 접속 시에도 유지됩니다.</div>
+      </section>
+    </div>
+
+    <script type="module" src="./battle.js?v=20260531-21"></script>
   </body>
 </html>

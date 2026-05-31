@@ -3,46 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Classic Sudoku</title>
-    <link rel="stylesheet" href="./styles.css?v=20260531-20" />
+    <title>스도쿠</title>
+    <link rel="stylesheet" href="./styles.css?v=20260531-21" />
   </head>
   <body>
-    <main class="app-shell">
+    <button id="settingsBtn" class="settings-fab" type="button" aria-label="개인 설정">⚙</button>
+
+    <main class="home-screen" id="homeScreen">
+      <section class="home-card" aria-label="스도쿠 시작">
+        <h1>스도쿠</h1>
+        <p>논리와 추리의 퍼즐 게임</p>
+
+        <div class="home-actions">
+          <button id="soloStartBtn" class="home-choice solo-choice" type="button">
+            <span class="choice-icon">♙</span>
+            <span>
+              <strong>혼자하기</strong>
+              <small>난이도를 선택하고 도전하세요</small>
+            </span>
+          </button>
+          <a class="home-choice battle-choice" href="./battle.html?v=20260531-21">
+            <span class="choice-icon">♧</span>
+            <span>
+              <strong>대전모드</strong>
+              <small>친구와 함께 대결하세요</small>
+            </span>
+          </a>
+        </div>
+
+        <div class="home-tip">🏆 미션을 완료하고 더 어려운 난이도에 도전하세요!</div>
+      </section>
+    </main>
+
+    <main class="app-shell solo-shell is-hidden" id="soloGame">
       <section class="topbar solo-topbar" aria-label="게임 상태">
         <div>
-          <p class="eyebrow">Classic Sudoku</p>
-          <h1>스도쿠</h1>
+          <a class="back-link" href="./index.html" aria-label="처음으로">←</a>
         </div>
-        <div id="progress" class="progress-panel mission-panel" aria-live="polite"></div>
-        <div class="stats">
-          <a class="mode-link" href="./battle.html?v=20260531-20">대전모드</a>
-          <div class="stat">
-            <span>시간</span>
-            <strong id="timer">00:00</strong>
-          </div>
-          <div class="stat">
-            <span>난이도</span>
-            <strong id="currentDifficulty">쉬움</strong>
-          </div>
-          <div class="stat">
-            <span>실수</span>
-            <strong id="mistakes">0</strong>
-          </div>
-        </div>
+        <h2 class="screen-title"><span>🌱</span> 쉬움</h2>
+        <div class="timer-chip" id="timer">00:00</div>
       </section>
 
-      <section class="game-layout">
+      <section class="solo-content">
+        <div class="difficulty" role="group" aria-label="난이도 선택">
+          <button class="difficulty-btn active" data-difficulty="easy">쉬움</button>
+          <button class="difficulty-btn" data-difficulty="medium">보통</button>
+          <button class="difficulty-btn" data-difficulty="hard">어려움</button>
+        </div>
+
+        <div id="progress" class="progress-panel mission-panel" aria-live="polite"></div>
+
         <div class="board-wrap">
           <div id="board" class="sudoku-board" aria-label="스도쿠 보드"></div>
         </div>
 
         <aside class="controls" aria-label="게임 조작">
-          <div class="difficulty" role="group" aria-label="난이도 선택">
-            <button class="difficulty-btn active" data-difficulty="easy">쉬움</button>
-            <button class="difficulty-btn" data-difficulty="medium">보통</button>
-            <button class="difficulty-btn" data-difficulty="hard">어려움</button>
-          </div>
-
           <div id="message" class="message solo-message" role="status" aria-live="polite">
             빈 칸을 선택하고 숫자를 입력하세요.
           </div>
@@ -64,10 +79,37 @@
             <button id="hintBtn" class="secondary">힌트</button>
             <button id="newGameBtn" class="primary">새 게임</button>
           </div>
+
+          <div class="tool-summary">
+            <div><strong id="mistakes">0</strong><span>실수</span></div>
+            <div><strong id="currentDifficulty">쉬움</strong><span>난이도</span></div>
+          </div>
         </aside>
       </section>
     </main>
 
-    <script src="./app.js?v=20260531-20"></script>
+    <div id="settingsModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <section class="settings-modal">
+        <div class="modal-head">
+          <h2 id="settingsTitle">⚙ 개인 설정</h2>
+          <button id="closeSettingsBtn" class="icon-button" type="button" aria-label="닫기">×</button>
+        </div>
+        <label class="setting-row">
+          <span>🔊 사운드</span>
+          <input id="soundToggle" type="checkbox" checked />
+        </label>
+        <label class="setting-control">
+          <span>배경음 크기 <strong id="musicVolumeLabel">70%</strong></span>
+          <input id="musicVolume" min="0" max="100" type="range" value="70" />
+        </label>
+        <label class="setting-control">
+          <span>효과음 크기 <strong id="effectVolumeLabel">50%</strong></span>
+          <input id="effectVolume" min="0" max="100" type="range" value="50" />
+        </label>
+        <div class="settings-tip">💡 설정은 자동으로 저장되며 다음 접속 시에도 유지됩니다.</div>
+      </section>
+    </div>
+
+    <script src="./app.js?v=20260531-21"></script>
   </body>
 </html>
